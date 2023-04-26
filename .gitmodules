@@ -1,0 +1,6 @@
+[submodule "externals/libigl"]
+	path = externals/libigl
+	url = https://github.com/libigl/libigl/
+[submodule "externals/polyscope"]
+	path = externals/polyscope
+	url = https://github.com/nmwsharp/polyscope
