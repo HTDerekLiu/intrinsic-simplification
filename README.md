@@ -2,7 +2,7 @@
  
 ## Getting Started
 ```
-git clone --recursive https://github.com/HTDerekLiu/intrinsic-surface-simplification.git
+git clone --recursive https://github.com/HTDerekLiu/intrinsic-simplification.git
 ```
 
 ## Compilation
