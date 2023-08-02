@@ -4,6 +4,17 @@
 #include<algorithm>
 #include<Eigen/Core>
 
+/*
+sort vector
+
+Inputs:
+  vec: input vector
+
+Outputs:
+  sorted_vec: sorted vector
+  ind: indices of the sorting (argsort)
+*/
+
 template <typename Derived>
 void sort_vec(
   const Eigen::PlainObjectBase<Derived> & vec, 
