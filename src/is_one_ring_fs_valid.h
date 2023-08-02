@@ -8,6 +8,12 @@
 #include "get_face_side_vertices.h"
 #include "vertex_one_ring_face_sides.h"
 
+/*
+Mainly for debugging purposes
+
+This is used to check whether the vertex one-ring face-sides are valid or not
+*/
+
 bool is_one_ring_fs_valid(
     const Eigen::MatrixXi & F,
     const Eigen::MatrixXi & G,

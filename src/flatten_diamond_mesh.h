@@ -9,24 +9,24 @@
 #include "opposite_corner_angle.h"
 #include "roll1d.h"
 
-// flatten the diamond of a face side into 2D 
-
-// Inputs
-//     G: glue map
-//     l: edge length matrix
-//     fs: face side
-
-// Optional inputs
-//     is_ccw: true/false to determine whether edge flip is ccw or cw
-
-// Outputs
-//     U: 4x2 UV coordinates
-//     F: face indices before flip
-
-// Optional outputs:
-//     FF: face indices after flip 
-
 /*
+flatten the diamond of a face side into 2D 
+
+Inputs
+    G: glue map
+    l: edge length matrix
+    fs: face side
+
+Optional inputs
+    is_ccw: true/false to determine whether edge flip is ccw or cw
+
+Outputs
+    U: 4x2 UV coordinates
+    F: face indices before flip
+
+Optional outputs:
+    F_flip: face indices after flip (the "FF" in the figure)
+
 Notation of ccw flip
          before          after  
            u2              u2
@@ -51,7 +51,6 @@ void flatten_diamond_mesh(
     Eigen::MatrixXd & U,
     Eigen::MatrixXi & F);
 
-// this version also returns the faces after edge flips
 void flatten_diamond_mesh(
     const Eigen::MatrixXi & G,
     const Eigen::MatrixXd & l,

@@ -17,9 +17,9 @@
 #include "face_n_ring_faces.h"
 
 /*
-    Flip edges locally in the triangulation for 2-rings of a face "f" until it satisfies the intrinsic Delaunay criterion.
+Flip edges locally in the triangulation for 2-rings of a face "f" until it satisfies the intrinsic Delaunay criterion.
 
-    Inputs
+Inputs
     F: |F|x3 array of face list
     G: |F|x3x2 array of gluing map 
     El: |F|x3 array of edge-lengths array
@@ -27,13 +27,13 @@
     v2fs: |V|x2 array of face-sides. V2FS[v] outputs one face-side starting from this vertex 
     f: face index
 
-    Optional inputs:
+Optional inputs:
     BC: |BC|x3 array of barycentric coordinates whose corresponding faces are stored in F2V implicitly
     F2V: |F| length list of lists, where F2V[f] gives you a list of indices in BC. For example, if F2V[f] = [v], then BC[v,:] corresponds to the barycentric coordinates in F[f,:]
     ophist: operation history list, appended-to in-place
 
-    Outputs
-    all in place
+Outputs
+    changed in place
 */
 void flip_to_delaunay_local(
     const int & f_center,

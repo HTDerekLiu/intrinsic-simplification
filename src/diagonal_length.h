@@ -10,17 +10,17 @@
 #include "twin.h"
 #include "opposite_corner_angle.h"
 
-// Computes the length of the opposite diagonal of the diamond formed by the triangle containing fs, and the neighboring triangle adjacent to fs.
-//
-// Inputs
-//     G: |F|x3x2 gluing map
-//     l: |F|x3 array of face-side edge lengths
-//     fs: A face-side (f,s)
-//
-// Outputs:
-//     The diagonal length
-
 /*
+Computes the length of the opposite diagonal of the diamond formed by the triangle containing fs, and the neighboring triangle adjacent to fs.
+
+Inputs
+    G: |F|x3x2 gluing map
+    l: |F|x3 array of face-side edge lengths
+    fs: A face-side (f,s)
+
+Outputs:
+    The diagonal length
+
 Note:
          / \
         / | \  

@@ -14,14 +14,14 @@
 #include "global_variables.h"
 
 /*
-    this function returns the neighboring n-ring faces of a given face
+this function returns the neighboring n-ring faces of a given face
 
-    Inputs
-    G: |F|x3x2 array of gluing map 
+Inputs
+    G: |F|x6 array of gluing map 
     f_src: index of the center face
     num_rings: int of the number of rings to extract
 
-    Outputs
+Outputs
     fIdx: list of neighboring face indices
 */
 void face_n_ring_faces(

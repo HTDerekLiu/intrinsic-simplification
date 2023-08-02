@@ -17,13 +17,13 @@
 Computes discrete gaussian curvature for a given vertex. For boundary vertices, we output geodesic curvature
 
 Input
-G: |F|x3x2 array of gluing map. 
-El: |F|x3 array of face-side lengths
-v2fs: |V|x2 array of face-sides. V2FS[v] outputs one face-side starting from this vertex 
-v: vertex index
+    G: |F|x3x2 array of gluing map. 
+    El: |F|x3 array of face-side lengths
+    v2fs: |V|x2 array of face-sides. V2FS[v] outputs one face-side starting from this vertex 
+    v: vertex index
 
 Outputs
-gaussian curvature at v
+    gaussian curvature at v
 */
 double gaussian_curvature_at_vertex(
     const Eigen::MatrixXi &G, 

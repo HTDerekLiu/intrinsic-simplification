@@ -6,7 +6,13 @@
 
 #include "face_areas.h"
 
-// compute face area for each face
+// compute vertex area for each vertex
+// Inputs
+// F: |F|x3 face list
+// l: |F|x3 face side lengths
+
+// Outputs
+// VA: |V| vector of vertex areas
 
 void vertex_areas(
     const Eigen::MatrixXi & F,

@@ -4,7 +4,16 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-// compute face area for each face
+/*
+compute area for each face
+
+Inputs:
+    l: |F|x3 edge lengths for each face side
+
+Outputs:
+    FA: |F| vector of face areas
+
+*/
 
 void face_areas(
     const Eigen::MatrixXd & l,

@@ -12,14 +12,13 @@
 compute the prolongation operator
 
 Inputs:
-F: (redundant) face list with unreferenced vertices, the output of "coarsen_mesh"
-BC: barycentrinc points (with size equals to V.rows()), also the output of "coarsen_mesh"
-F2V: face to BC indices
-nV: number of fine vertices
+    F: (redundant) face list with unreferenced vertices, the output of "coarsen_mesh"
+    BC: barycentrinc points (with size equals to V.rows()), also the output of "coarsen_mesh"
+    F2V: face to BC indices
+    nV: number of fine vertices
 
 Outputs:
-RF: reduced face list
-P: prolongation
+    P: |V|x|V_coarse| scalar prolongation matrix
 
 WARNING: 
 BC is the output of coarsen_mesh, which has size |nV_fine|x3 (with a lot of redundant rows in it)

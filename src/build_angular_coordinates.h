@@ -13,16 +13,18 @@
 #include "opposite_corner_angle.h"
 
 
-// Builds the angular coordinates for each vertex in the mesh. Note that for the boundary vertices, our implementation assumes zero geodesic curvature. Thus it will result in large distortion if this is not the case.
+/*
+Builds the angular coordinates for each vertex in the mesh. Note that for the boundary vertices, our implementation assumes zero geodesic curvature. Thus it will result in large distortion if this is not the case.
 
-// Inputs
-//     F: |F|x3 array of face list
-//     G: |F|x6 array of gluing map. 
-//     l: |F|x3 array of face-side lengths
+Inputs
+    F: |F|x3 vertex-face adjacency list
+    G: |F|x6 array of gluing map. 
+    l: |F|x3 array of face-side lengths
 
-// Outputs:
-//     A: |F|x3 array of angular coordinates. A(f,s) gives you the angular coordinate of this face-side from its starting vertex
-//     v2fs: |V|x2 array of face-sides. v2fs.row(v) outputs one face-side starting from this vertex 
+Outputs:
+    A: |F|x3 array of angular coordinates. A(f,s) gives you the angular coordinate of this face-side from its starting vertex
+    v2fs: |V|x2 array of face-sides. v2fs.row(v) outputs one face-side starting from this vertex 
+*/
 
 void build_angular_coordinates(
     const Eigen::MatrixXi & F,

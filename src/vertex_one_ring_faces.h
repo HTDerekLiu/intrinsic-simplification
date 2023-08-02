@@ -8,6 +8,13 @@
 
 /*
 Given a vertex v, this function outputs its one-ring face indices
+
+Inputs
+    G: |F|x6 array of gluing map. 
+    v2fs: |v|x2 where v2fs.row(i) returns a face side for vertex i
+    v: vertex index
+Outputs
+    one_ring_faces: vector of one-ring face indices
 */
 void vertex_one_ring_faces(
     const Eigen::MatrixXi & G,

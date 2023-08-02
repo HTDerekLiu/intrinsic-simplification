@@ -13,14 +13,18 @@
 #include "twin.h"
 #include "next.h"
 
-// given a vertex v, this method outputs the maximum valid value in the angular coordinate. For interior vertex, this is always 2pi. For boundary vertex, this is [0,2pi]
-// Inputs:
-//     G: glue map
-//     l: edge lengths
-//     v2fs: vertex to fs map
-//     v: vertex index
-// Outputs:
-//     angle_range
+/*
+given a vertex v, this method outputs the maximum valid value in the angular coordinate. For interior vertex, this is always 2pi. For boundary vertex, this is [0,2pi]
+
+Inputs:
+    G: glue map
+    l: edge lengths
+    v2fs: vertex to fs map
+    v: vertex index
+    
+Outputs:
+    angle_range
+*/
 double get_angular_coordinate_range(
     const Eigen::MatrixXi & G,
     const Eigen::MatrixXd & l,

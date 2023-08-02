@@ -26,23 +26,20 @@
 #include "is_one_ring_fs_valid.h"
 
 /*
-    Given a boundary vertex v which CAN BE FLIPPED, this function flips edges so that the vertex becomes an ear
+Given a boundary vertex v which CAN BE FLIPPED, this function flips edges so that the vertex becomes an ear
 
-    Inputs:
-    F: |F|x3 vertex-face adjacency list F
-    G: |F|x3x2 gluing map G
-    El: |F|x3 edge-lengths array, giving the length of each face-side
-    A: |F|x3 array of signpost angles
-    v2fs: |V|x2 array of face-sides. V2FS[v] outputs one face-side starting from this vertex 
+Inputs:
+    F: |F|x3 vertex-face adjacency list
+    G: |F|x6 gluing map
+    l: |F|x3 edge lengths for each face side
+    A: |F|x3 angular coordinate for each face side
+    v2fs: |V|x2 where v2fs.row(v) returns a face side for vertex v
     v: a vertex index
-
-    Additional inputs:
     BC: |BC|x3 array of barycentric coordinates whose corresponding faces are stored in F2V implicitly
     F2V: |F| length list of lists, where F2V[f] gives you a list of indices in BC. For example, if F2V[f] = [v], then BC[v,:] corresponds to the barycentric coordinates in F[f,:]
-    ophist: operation history list, appended-to in-place
 
-    Outputs 
-    Ture/False indicates whether the edge flip successfully flip to an ear
+Outputs:
+    all the intrinsic information changed in place
 */
 void always_flip_to_ear(
     const int & v,

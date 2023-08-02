@@ -9,6 +9,15 @@
 
 /*
 given a list of face sides, this funvtio creates a curve network for visualization.
+
+Inputs:
+    V: |V|x3 vertex list
+    F: |F|x3 vertex-face adjacency list
+    fs_list: vector of Vector2i, it contains a list of face sides
+
+Inputs
+    nodes: |P|x3 node location list
+    edges: |P|x2 node edge list
 */
 void face_sides_to_curve_network(
     const Eigen::MatrixXd & V,

@@ -13,4 +13,4 @@ Once compiled, one can run the example by typing
 ```
 and you will see two examples
 <img src="../assets/01.jpg" width="100%">
-where the first image is the test function (shown as colors) defined on the  simplified model and the second image is the prolonged counterpart of the test function on the original model. Again, we want to emphasize that the visualization of the simplified model is INACCURATE, meaning the straight edge length you see in the demo does not have the same length as the actual intrinsic edge length.
+where the first image is the test function (shown as colors) defined on the simplified model and the second image is the prolonged counterpart of the test function on the original model. Again, we want to emphasize that the visualization of the simplified model is INACCURATE, meaning the straight edge length you see in the demo does not have the same length as the actual intrinsic edge length.

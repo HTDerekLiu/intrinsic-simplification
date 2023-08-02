@@ -1,5 +1,5 @@
 # Mix-and-match Coarsening Quantities 
-Our coarsening supports different "masses" for decimation. In this demo, we should how can one mix and match the default curvature quantity (encourging curvature aware decimation) with the area quantity (encouraging uniform simplification). 
+Our coarsening supports different "masses" for decimation. In this demo, we show how can one mix-and-match the curvature quantity (encourging curvature aware decimation) with the area quantity (encouraging uniform simplification) to achieve different decimation behaviors. 
 
 To run this example, please compile it using the common cmake/make routine:
 ```
@@ -15,4 +15,4 @@ Once compiled, one can run the example by typing
 ```
 and you will see three examples
 <img src="../assets/02.jpg" width="100%">
-From left to right, the results are (Gaussian) curvature only simplification, mixture of curvature and area simplification, area only simplification. Again, the visualization does not reflect the actualy intrinsic mesh. One should extract the edge length matrix `l` in the code to understand the actual intrinsic geometry. 
+From left to right, the results are (Gaussian) curvature only simplification, mixture of curvature and area simplification, area only simplification. Again, the visualization does not reflect the actualy intrinsic mesh. One should use the edge lengths matrix `l` in the code to extract the actual intrinsic geometry. 

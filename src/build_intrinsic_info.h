@@ -8,16 +8,17 @@
 #include "build_edge_lengths.h"
 #include "build_angular_coordinates.h"
 
-// build the information needed for intrinsic triangulation 
-
-// Inputs:
-//     V: |V|x3 vertex list
-//     F: |F|x3 face list
-// Outputs:
-//     G: |F|x6 glue map
-//     l: |F|x3 edge lengths for each face side
-//     A: |F|x3 angular coordinate for each face EIGEN_STRIDE_H
-//     v2fs: |v|x2 where v2fs.row(i) returns a face side for that vertex
+/*
+build the information needed for intrinsic triangulation 
+Inputs:
+    V: |V|x3 vertex list
+    F: |F|x3 face list
+Outputs:
+    G: |F|x6 glue map
+    l: |F|x3 edge lengths for each face side
+    A: |F|x3 angular coordinate for each face EIGEN_STRIDE_H
+    v2fs: |v|x2 where v2fs.row(i) returns a face side for that vertex
+*/
 void build_intrinsic_info(
     const Eigen::MatrixXd & V,
     const Eigen::MatrixXi & F,

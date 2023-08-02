@@ -40,7 +40,7 @@ Optional inputs:
     F2V: |F| length list of lists, where F2V[f] gives you a list of indices in BC.
 
 Outputs 
-    everything besides s0
+    everything updated in place besides s0
     fs_dict: store the map between old fs (as std::pair) and new fs (as std::pair). Note that this is different from the usual represnetation Vector2i
 
 TODO: add output 

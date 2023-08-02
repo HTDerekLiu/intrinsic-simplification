@@ -13,4 +13,4 @@ Once compiled, one can run the example by typing
 ```
 and you will see three examples
 <img src="../assets/00.jpg" width="100%">
-where the images (from left to right) are the original mesh, barycentric points of the original vertices on the coarsened mesh, and the coarsend mesh. We want to by crystally clear that the visualization of the coarsened mesh in the demo is INACCURATE. Speficially, the edge lengths on the coarsened model is not the same as the actual intrinsic edge length. The correct intrinsic edge lengths requires to extract the edge length matrix `l` from the code. 
+where the images (from left to right) are the original mesh, barycentric points of the original vertices on the coarsened mesh, and the coarsend mesh. We want to be crystally clear that the visualization of the coarsened mesh in the demo is INACCURATE. Speficially, the edge lengths in the visualization is different from the actual intrinsic edge lengths. The correct edge lengths require to extract the edge lengths matrix `l` from the code. 
