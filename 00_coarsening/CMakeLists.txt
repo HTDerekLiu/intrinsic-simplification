@@ -17,5 +17,6 @@ include_directories("../src/")
 # Add your project files
 file(GLOB SRC_FILES *.cpp ../src/*.cpp)
 add_executable(${PROJECT_NAME} ${SRC_FILES})
+target_include_directories(${PROJECT_NAME} PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/../externals/polyscope/deps/args/") # grab args.hxx from polyscope
 target_link_libraries(${PROJECT_NAME} PUBLIC polyscope igl::core)
 target_compile_options(${PROJECT_NAME} PUBLIC "-fno-omit-frame-pointer")
