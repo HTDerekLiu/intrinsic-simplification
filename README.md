@@ -61,8 +61,6 @@ If this code contributes to academic work, please cite as:
   month = {jul},
   articleno = {118},
 }
-
-}
 ```
 
 
