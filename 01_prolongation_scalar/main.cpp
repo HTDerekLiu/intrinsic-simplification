@@ -129,13 +129,17 @@ int main(int argc, char* argv[]) {
 	get_prolongation(F,BC,F2V,IMV,P);
 
 	// create a random test function
-	VectorXd D(V.rows());
+	VectorXd hat_function = VectorXd::Zero(V.rows());
+  hat_function(0) = 1;
+
+  VectorXd random_function(V.rows());
   for (Eigen::Index iV = 0; iV < V.rows(); iV++) {
-    D(iV) = sin(V(iV, 0) * 10) * cos(V(iV, 1) * 5) + sin(V(iV, 2) * 8);
+    random_function(iV) = sin(V(iV, 0) * 10) * cos(V(iV, 1) * 5) + sin(V(iV, 2) * 8);
   }
 
   // prolongation
-	VectorXd DO = P * D;
+	VectorXd hatO = P * hat_function;
+  VectorXd randO = P * random_function;
 
   if (prolongation_matrix_path_arg) {
     std::string path = args::get(prolongation_matrix_path_arg);
@@ -158,9 +162,11 @@ int main(int argc, char* argv[]) {
 
   polyscope::init();
   polyscope::registerSurfaceMesh("input mesh", VO, FO);
-  polyscope::getSurfaceMesh("input mesh")->addVertexScalarQuantity("prolonged rand function", DO);
+  polyscope::getSurfaceMesh("input mesh")->addVertexScalarQuantity("prolonged hat function", hatO);
+  polyscope::getSurfaceMesh("input mesh")->addVertexScalarQuantity("prolonged random function", randO);
   polyscope::registerSurfaceMesh("coarsened mesh (with wrong edge length)", V, F);
-  polyscope::getSurfaceMesh("coarsened mesh (with wrong edge length)")->addVertexScalarQuantity("rand function", D);
+  polyscope::getSurfaceMesh("coarsened mesh (with wrong edge length)")->addVertexScalarQuantity("hat function", hat_function);
+  polyscope::getSurfaceMesh("coarsened mesh (with wrong edge length)")->addVertexScalarQuantity("rand function", random_function);
   polyscope::view::lookAt(glm::vec3{1.5, 1.5, 3}, glm::vec3{0., 0., 0.});
   polyscope::show();
 }
