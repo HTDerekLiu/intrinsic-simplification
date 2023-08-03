@@ -6,7 +6,7 @@ Public code release for [Surface Simplification using Intrinsic Error Metricsn](
 **Surface Simplification using Intrinsic Error Metrics**<br>
 [Hsueh-Ti Derek Liu](https://www.dgp.toronto.edu/~hsuehtil/), [Mark Gillespie](https://markjgillespie.com/), [Benjamin Chislett](https://github.com/benchislett), [Nicholas Sharp](https://nmwsharp.com/), [Alec Jacobson](https://www.cs.toronto.edu/~jacobson/), [Keenan Crane](https://www.cs.cmu.edu/~kmcrane/)<br>
 ACM Transaction on Graphics (Proceedings of SIGGRAPH 2023)<br>
-**[[Preprint](https://www.dgp.toronto.edu/~hsuehtil/pdf/intrinsic_simplification.pdf)]** **[[ArXiv](https://arxiv.org/abs/2305.06410)]**
+**[[Preprint](https://www.dgp.toronto.edu/~hsuehtil/pdf/intrinsic_simplification.pdf)]** **[[ArXiv](https://arxiv.org/abs/2305.06410)]** **[[Paper](https://doi.org/10.1145/3592403})]**
 
 ## Installation
 To get started, clone this repository *recursively*
@@ -41,6 +41,28 @@ make -j8
 and then run
 ``` bash
 ./main
+```
+
+## Citation
+If this code contributes to academic work, please cite as:
+```bibtex
+@article{Liu:2023:SSI,
+  author = {Liu, Hsueh-Ti Derek and Gillespie, Mark and Chislett, Benjamin and Sharp, Nicholas and Jacobson, Alec and Crane, Keenan},
+  title = {Surface Simplification Using Intrinsic Error Metrics},
+  journal = {ACM Trans. Graph.},
+  volume = {42},
+  number = {4},
+  year = {2023},
+  publisher = {ACM},
+  address = {New York, NY, USA},
+  issn = {0730-0301},
+  url = {https://doi.org/10.1145/3592403},
+  doi = {10.1145/3592403},
+  month = {jul},
+  articleno = {118},
+}
+
+}
 ```
 
 
