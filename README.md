@@ -6,7 +6,7 @@ Public code release for [Surface Simplification using Intrinsic Error Metricsn](
 **Surface Simplification using Intrinsic Error Metrics**<br>
 [Hsueh-Ti Derek Liu](https://www.dgp.toronto.edu/~hsuehtil/), [Mark Gillespie](https://markjgillespie.com/), [Benjamin Chislett](https://github.com/benchislett), [Nicholas Sharp](https://nmwsharp.com/), [Alec Jacobson](https://www.cs.toronto.edu/~jacobson/), [Keenan Crane](https://www.cs.cmu.edu/~kmcrane/)<br>
 ACM Transaction on Graphics (Proceedings of SIGGRAPH 2023)<br>
-**[[Preprint](https://www.dgp.toronto.edu/~hsuehtil/pdf/intrinsic_simplification.pdf)]** **[[ArXiv](https://arxiv.org/abs/2305.06410)]** **[[Paper](https://doi.org/10.1145/3592403})]**
+**[[Preprint](https://www.dgp.toronto.edu/~hsuehtil/pdf/intrinsic_simplification.pdf)]** **[[ArXiv](https://arxiv.org/abs/2305.06410)]** **[[Paper](https://doi.org/10.1145/3592403)]**
 
 ## Installation
 To get started, clone this repository *recursively*
