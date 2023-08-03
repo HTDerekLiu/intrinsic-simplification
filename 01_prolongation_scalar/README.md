@@ -1,5 +1,5 @@
 # Intrinsic Prolongation
-This is an example to show how to construct a prolongation operator (a.k.a. interpolation) from our intrinsically simplified mesh. To run this example, please compile it using the common cmake/make routine:
+This is an example to show how to construct a prolongation operator (a.k.a. interpolation) from our intrinsically simplified mesh. Optionally, it can also compute a Laplace matrix and mass matrix on the coarsened mesh. To run this example, please compile it using the common cmake/make routine:
 ``` bash
 cd 01_prolongation_scalar/
 mkdir build
