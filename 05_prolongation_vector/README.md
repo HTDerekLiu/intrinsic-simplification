@@ -11,9 +11,9 @@ Once compiled, one can run the example by typing
 ``` bash
 ./main
 ```
-and you will see two examples
-<img src="../assets/05.jpg" width="100%">
-where the first image is the test function (shown as colors) defined on the simplified model and the second image is the prolonged counterpart of the test function on the original model. Again, we want to emphasize that the visualization of the simplified model is INACCURATE, meaning the straight edge length you see in the demo does not have the same length as the actual intrinsic edge length.
+and you will see the following example:
+<p align="center"><img src="../assets/05.jpg" height="400pt;"></p>
+This example shows a smooth vector field computed by running [Globally-Optimal Direction Fields](http://www.cs.cmu.edu/~kmcrane/Projects/GloballyOptimalDirectionFields/) on the simplified mesh, and using our prolongation operator to transfer this field to the original mesh.
 
 ## Usage
 
