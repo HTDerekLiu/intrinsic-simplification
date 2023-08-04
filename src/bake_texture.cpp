@@ -1,5 +1,7 @@
 #include "bake_texture.h"
 
+#define N_COLORS 24
+
 void write_png(
     const std::string & png_path,
     unsigned char* image_buffer,
@@ -41,7 +43,7 @@ void bake_texture(
     using namespace Eigen;
 
     // face colors
-    MatrixXi colors(24, 3); // from colorbrewer2.org
+    MatrixXi colors(N_COLORS, 3); // from colorbrewer2.org
     colors << 251, 128, 114,
               128, 177, 211,
               253, 180, 98,
@@ -68,7 +70,7 @@ void bake_texture(
               177,89,40;
 
 
-    // identify which face each pixel lies in
+    //== identify which face each pixel lies in
     vector<pair<int, int>> coord_faces;
     for (int fIdx = 0; fIdx < F2V.size(); fIdx++){
         if (F2V[fIdx].size() > 0){
@@ -95,38 +97,45 @@ void bake_texture(
         }
     }
 
-    // color faces so that no two faces which share a vertex are the same color
-    int maxmax = 0;
+    //== color faces so that no two faces which share a vertex are the same color
+    int n_coarse_vertices = F.maxCoeff() + 1; // note that nV is the number of _original_ vertices
+    // find a list of which faces are incident on each vertex
     int nF = F2V.size();
+    vector<vector<int>> vertex_faces(n_coarse_vertices, {});
+    for (int iF = 0; iF < nF; iF++) {
+        for (int iC = 0; iC < 3; iC++) {
+            if (F(iF, iC) < 0) continue;
+            vertex_faces[F(iF, iC)].push_back(iF);
+        }
+    }
     VectorXi query_point_color_indices(nF);
     query_point_color_indices.setConstant(-1);
-    for (int f = 0; f < nF; f++) {
-        set<int> f1_vs = {F(f, 0), F(f, 1), F(f, 2)}; // vertices of face f
-        set<int> nbrs;
-        if (*f1_vs.begin() < 0) continue;
-        // search for neighbors of face f
-        for (int f2 = 0; f2 < nF; f2++) {
-            if (f == f2) continue;
-            int cnt = f1_vs.count(F(f2, 0)) + f1_vs.count(F(f2, 1)) + f1_vs.count(F(f2, 2));
-            if (cnt >= 1) {
-                // if f2 has been assigned a color, record it to ensure
-                // that f will pick a different color
-                if (query_point_color_indices(f2) != -1)
-                    nbrs.insert(query_point_color_indices(f2));
+    for (int iF = 0; iF < nF; iF++) {
+        array<bool, N_COLORS> used_color;
+        used_color.fill(false);
+        // iterate over neighbors of face f
+        for (int iC = 0; iC < 3; iC++) {
+            if (F(iF, iC) < 0) continue;
+            for (int iN : vertex_faces[F(iF, iC)]) {
+                if (iF == iN) continue;
+                // if iN has been assigned a color, record it to ensure
+                // that iF will pick a different color
+                if (query_point_color_indices(iN) != -1)
+                    used_color[query_point_color_indices(iN)] = true;
             }
         }
 
         // take the smallest color not already claimed by a neighbor of f
-        int mincoord = 0;
-        while (nbrs.count(mincoord) > 0) mincoord++;
+        int free_color = 0;
+        while (used_color[free_color]) free_color++;
 
-        if (mincoord >= colors.rows())
+        if (free_color >= N_COLORS)
             throw std::runtime_error("[Error] not enough color in back texture cpp");
 
-        query_point_color_indices(f) = mincoord;
+        query_point_color_indices(iF) = free_color;
     }
 
-    // final pixel colors
+    //== record final pixel colors
     MatrixXi query_point_colors(tex_size, 3);
     for (int i = 0; i < tex_size; i++) {
         if (query_point_indices(i) == -1 || query_point_color_indices(query_point_indices(i)) == -1)

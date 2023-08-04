@@ -5,6 +5,7 @@
 #include <Eigen/Dense>
 
 #include <utility>
+#include <array>
 #include <vector>
 #include <iostream>
 #include <set>
