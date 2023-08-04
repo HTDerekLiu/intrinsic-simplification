@@ -12,7 +12,9 @@ Once compiled, one can run the example by typing
 ./main
 ```
 and you will see the following example:
+
 <p align="center"><img src="../assets/05.jpg" height="400pt;"></p>
+
 This example shows a smooth vector field computed by running [Globally-Optimal Direction Fields](http://www.cs.cmu.edu/~kmcrane/Projects/GloballyOptimalDirectionFields/) on the simplified mesh, and using our prolongation operator to transfer this field to the original mesh.
 
 ## Usage
