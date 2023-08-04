@@ -26,6 +26,7 @@ main.cpp
 + `00_coarsening/`: a minimal example to demonstrate how to use our intrinsic simplification.
 + `01_prolongation_scalar/`: constructs a prolongation operator for scalar functions (Section 7.2), alongside a Laplace matrix and mass matrix on the simplified mesh.
 + `02_mixture_quantities/`: shows how our method can mix and match different quantites for coarsening (Fig. 11)
++ `03_visualization/`: shows how to visualize the intrinsic triangles sitting atop the original fine mesh (Fig. 15)
 
 And they share a common `src` folder for source code and a `meshes` folder for input meshes.
 
