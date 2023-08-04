@@ -27,6 +27,8 @@ main.cpp
 + [`01_prolongation_scalar/`](01_prolongation_scalar/): constructs a prolongation operator for scalar functions (Section 7.2), alongside a Laplace matrix and mass matrix on the simplified mesh.
 + [`02_mixture_quantities/`](02_mixture_quantities/): shows how our method can mix and match different quantites for coarsening (Fig. 11)
 + [`03_visualization/`](03_visualization/): shows how to visualize the intrinsic triangles sitting atop the original fine mesh (Fig. 15)
++ [`04_multigrid/`](04_multigrid/): shows how to use our intrinsic coarsening to construct a Galerkin multigrid solver, following the technique presented in [Surface Multigrid via Intrinsic Prolongation](https://www.dgp.toronto.edu/projects/intrinsic-prolongation/) (SIGGRAGH North America 2021)
++ [`05_prolongation_vector/`](05_prolongation_vector/): constructs a prolongation operator for vector fields (Section 7.3), alongside a connection Laplacian matrix and vector mass matrix on the simplified mesh.
 
 And they share a common `src` folder for source code and a `meshes` folder for input meshes.
 
