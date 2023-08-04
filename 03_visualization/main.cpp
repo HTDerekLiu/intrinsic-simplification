@@ -19,12 +19,6 @@
 #include <query_texture_barycentric.h>
 #include <bake_texture.h>
 
-// For now, in order to build this branch you need to switch to Mark's polyscope fork.
-// From the /externals/polyscope directory, run
-//   git remote set-url origin git@github.com:MarkGillespie/polyscope.git
-//   git pull
-//   git checkout modernized_texturing
-
 int main(int argc, char* argv[]) {
   using namespace Eigen;
   using namespace std;
