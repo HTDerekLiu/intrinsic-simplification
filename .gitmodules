@@ -3,4 +3,5 @@
 	url = https://github.com/libigl/libigl/
 [submodule "externals/polyscope"]
 	path = externals/polyscope
-	url = https://github.com/nmwsharp/polyscope
+	url = https://github.com/MarkGillespie/polyscope.git
+	branch = modernized_texturing
