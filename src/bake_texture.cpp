@@ -7,15 +7,15 @@ void write_png(
     int h,
     int channels = 4)
 {
-  stbi_write_png(png_path.c_str(), w, h, channels, image_buffer, channels * w);
+    stbi_write_png(png_path.c_str(), w, h, channels, image_buffer, channels * w);
 }
 
 void bake_texture(
                   const std::string & png_path,
                   std::vector<unsigned char> & image_rgba_buffer) {
-  int tex_size = image_rgba_buffer.size() / 4;
-  int tex_width = (int) sqrt(tex_size);
-  write_png(png_path, image_rgba_buffer.data(), tex_width, tex_width);
+    int tex_size = image_rgba_buffer.size() / 4;
+    int tex_width = (int) sqrt(tex_size);
+    write_png(png_path, image_rgba_buffer.data(), tex_width, tex_width);
 }
 
 void bake_texture(
@@ -25,9 +25,9 @@ void bake_texture(
                   const Eigen::Matrix<bool, Eigen::Dynamic, 1> & hit_mask,
                   const int & nV)
 {
-  std::vector<unsigned char> image_rgba_buffer;
-  bake_texture(image_rgba_buffer, F, F2V, hit_mask, nV);
-  bake_texture(png_path, image_rgba_buffer);
+    std::vector<unsigned char> image_rgba_buffer;
+    bake_texture(image_rgba_buffer, F, F2V, hit_mask, nV);
+    bake_texture(png_path, image_rgba_buffer);
 }
 
 void bake_texture(
@@ -68,80 +68,55 @@ void bake_texture(
               177,89,40;
 
 
+    // identify which face each pixel lies in
     vector<pair<int, int>> coord_faces;
-	for (int fIdx=0; fIdx<F2V.size(); fIdx++){
-		if (F2V[fIdx].size() > 0){
-			for (auto idx : F2V[fIdx]){
-                if (idx >= nV)
+    for (int fIdx = 0; fIdx < F2V.size(); fIdx++){
+        if (F2V[fIdx].size() > 0){
+            for (auto idx : F2V[fIdx]){
+                // idx - nV is the pixel index within the set of pixels where hit_mask is true
+                if (idx >= nV) {
+                    // store (pixel index, face index)
                     coord_faces.emplace_back(idx - nV, fIdx);
-			}
-		}
-	}
+                }
+            }
+        }
+    }
+    // sort entries to lie in pixel order
     std::sort(coord_faces.begin(), coord_faces.end());
 
     int tex_size = hit_mask.size();
     int tex_width = (int) sqrt(tex_size);
-    VectorXi query_point_indices(tex_size);
-    query_point_indices.setConstant(-1);
+    VectorXi query_point_indices(tex_size); // face index that pixels lie in
+    query_point_indices.setConstant(-1);    // initialize to -1, pixels outside faces will remain -1
     int coord_idx = 0;
     for (int i = 0; i < tex_size; i++) {
-        int idx = i + nV;
         if (hit_mask(i)) {
             query_point_indices(i) = coord_faces[coord_idx++].second;
         }
     }
 
-    VectorXi query_point_indices_copy(query_point_indices);
-    // fill in blank cells with an adjacent color if possible
-    for (int i = 0; i < tex_width; i++) {
-        for (int j = 0; j < tex_width; j++) {
-        int coord = i * tex_width + j;
-        if (query_point_indices(coord) != -1) continue;
-        int xoff, yoff;
-        xoff = -1; yoff = 0;
-        if (j+xoff >= 0 && j+xoff < tex_width && i+yoff >= 0 && i+yoff < tex_width && query_point_indices((i+yoff)*tex_width+j+xoff) != -1) {
-            query_point_indices_copy(coord) = query_point_indices((i+yoff)*tex_width+j+xoff);
-            continue;
-        }
-        xoff = 1;
-        if (j+xoff >= 0 && j+xoff < tex_width && i+yoff >= 0 && i+yoff < tex_width && query_point_indices((i+yoff)*tex_width+j+xoff) != -1) {
-            query_point_indices_copy(coord) = query_point_indices((i+yoff)*tex_width+j+xoff);
-            continue;
-        }
-        xoff = 0; yoff = 1;
-        if (j+xoff >= 0 && j+xoff < tex_width && i+yoff >= 0 && i+yoff < tex_width && query_point_indices((i+yoff)*tex_width+j+xoff) != -1) {
-            query_point_indices_copy(coord) = query_point_indices((i+yoff)*tex_width+j+xoff);
-            continue;
-        }
-        yoff = -1;
-        if (j+xoff >= 0 && j+xoff < tex_width && i+yoff >= 0 && i+yoff < tex_width && query_point_indices((i+yoff)*tex_width+j+xoff) != -1) {
-            query_point_indices_copy(coord) = query_point_indices((i+yoff)*tex_width+j+xoff);
-            continue;
-        }
-        }
-    }
-    query_point_indices = query_point_indices_copy;
-
+    // color faces so that no two faces which share a vertex are the same color
     int maxmax = 0;
     int nF = F2V.size();
     VectorXi query_point_color_indices(nF);
     query_point_color_indices.setConstant(-1);
     for (int f = 0; f < nF; f++) {
-        // if (f%100 == 0)
-        //     cout << "query_point_color_indices: " << f << "/" << nF << endl;
-
-        set<int> f1_vs = {F(f, 0), F(f, 1), F(f, 2)};
+        set<int> f1_vs = {F(f, 0), F(f, 1), F(f, 2)}; // vertices of face f
         set<int> nbrs;
         if (*f1_vs.begin() < 0) continue;
+        // search for neighbors of face f
         for (int f2 = 0; f2 < nF; f2++) {
             if (f == f2) continue;
             int cnt = f1_vs.count(F(f2, 0)) + f1_vs.count(F(f2, 1)) + f1_vs.count(F(f2, 2));
             if (cnt >= 1) {
+                // if f2 has been assigned a color, record it to ensure
+                // that f will pick a different color
                 if (query_point_color_indices(f2) != -1)
                     nbrs.insert(query_point_color_indices(f2));
             }
         }
 
+        // take the smallest color not already claimed by a neighbor of f
         int mincoord = 0;
         while (nbrs.count(mincoord) > 0) mincoord++;
 
@@ -151,7 +126,7 @@ void bake_texture(
         query_point_color_indices(f) = mincoord;
     }
 
-
+    // final pixel colors
     MatrixXi query_point_colors(tex_size, 3);
     for (int i = 0; i < tex_size; i++) {
         if (query_point_indices(i) == -1 || query_point_color_indices(query_point_indices(i)) == -1)
@@ -160,8 +135,8 @@ void bake_texture(
             query_point_colors.row(i) = colors.row(query_point_color_indices(query_point_indices(i)));
     }
 
+    // write colors to buffer
     image_buffer.resize(4 * tex_size);
-
     for (int j = 0; j < tex_width; j++) {
         for (int i = 0; i < tex_width; i++) {
             image_buffer[4 * (tex_width * j + i) + 0] = (unsigned char)(query_point_colors(j*tex_width+i, 0));
