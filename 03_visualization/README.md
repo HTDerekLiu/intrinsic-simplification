@@ -12,7 +12,9 @@ Once compiled, one can run the example by typing
 ./main
 ```
 and you will see colorful intrinsic triangles bending across the surface of your mesh.
-<img src="../assets/03.jpg" width="100%">
+
+<p align="center"><img src="../assets/03.jpg" height="400pt;"></p>
+
 Again, we should emphasize that the visualization of these intrinsic triangles is not isometric, meaning the length of the curved edges that you see on the mesh is not necessarily the same as the actual intrinsic edge length in the simplified mesh.
 
 ## Usage
