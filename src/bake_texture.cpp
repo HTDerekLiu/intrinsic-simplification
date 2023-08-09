@@ -101,7 +101,7 @@ void bake_texture(
     int n_coarse_vertices = F.maxCoeff() + 1; // note that nV is the number of _original_ vertices
     // find a list of which faces are incident on each vertex
     int nF = F2V.size();
-    vector<vector<int>> vertex_faces(n_coarse_vertices, {});
+    vector<vector<int>> vertex_faces(n_coarse_vertices, vector<int>{});
     for (int iF = 0; iF < nF; iF++) {
         for (int iC = 0; iC < 3; iC++) {
             if (F(iF, iC) < 0) continue;

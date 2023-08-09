@@ -5,7 +5,7 @@
 #include <Eigen/Dense>
 
 #include <vector>
-#include <math.h>
+#include <cmath>
 
 #include <igl/cumsum.h>
 
