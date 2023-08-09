@@ -23,7 +23,7 @@ You can simplify meshes by running the `./main` executable. By default, this sim
 ``` bash
 ./main /path/to/mesh.obj nVertices
 ```
-The input mesh must be a manifold and connected obj file.
+The input mesh must be a manifold and connected obj file _with UV coordinates_.
 
 The script takes a variety of arguments.
 

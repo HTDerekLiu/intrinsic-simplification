@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
   // Configure the argument parser
   args::ArgumentParser parser("Intrinsic Prolongation");
   args::Positional<std::string> filename_arg(parser, "mesh",
-                                             "Mesh to be coarsened. (default='../../meshes/spot.obj')");
+                                             "Mesh to be coarsened. (default='../../meshes/spot.obj'). Must have UV coordinates");
   args::Positional<int> n_coarse_vertices_arg(parser, "n_coarse_vertices",
                                               "Number of coarse vertices to leave. (default='500')");
   args::ValueFlag<double> weight_arg(parser, "area_weight",
@@ -61,6 +61,11 @@ int main(int argc, char* argv[]) {
   MatrixXi F, FO, UF, NF;
   {
     igl::readOBJ(filename, VO, UV, NV, FO, UF, NF);
+  }
+
+  if (UV.rows() == 0) {
+    std::cout << "Error: input mesh has no UV coordinates" << std::endl;
+    exit(1);
   }
 
   if (n_coarse_vertices < 0 ) {
