@@ -75,6 +75,7 @@ int main(int argc, char* argv[]) {
                                                               "File to save coarsened connection laplace matrix to. If not set, the laplace matrix is not saved", {'l',"laplace_path"});
     args::ValueFlag<std::string> mass_matrix_path_arg(parser, "mass_matrix_path",
                                                         "File to save coarsened vector mass matrix to. If not set, the mass matrix is not saved", {'m',"mass_path"});
+    args::Flag no_viz_flag(parser, "no_viz", "Write requested output files without showing visualization", {'n', "no_viz"});
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
 
     // Parse args
@@ -180,6 +181,10 @@ int main(int argc, char* argv[]) {
     if (mass_matrix_path_arg) {
         std::string path = args::get(mass_matrix_path_arg);
         save_complex_matrix(M, path);
+    }
+
+    if (no_viz_flag) {
+        exit(0);
     }
 
     polyscope::init();

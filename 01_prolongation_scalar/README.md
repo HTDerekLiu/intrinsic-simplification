@@ -31,6 +31,7 @@ The script takes a variety of arguments.
 |`--prolongation_matrix_path=prolongation_matrix.spmat`| File to save prolongation matrix to. If not set, the prolongation matrix is not saved |
 |`--laplace_matrix_path=laplace_matrix.spmat`| File to save simplified Laplace matrix to. If not set, the laplace matrix is not computed |
 |`--mass_matrix_path=mass_matrix.spmat`| File to save simplified mass matrix to. If not set, the mass matrix is not computed |
+|`--no_viz`| Write requested output files without showing visualization |
 |`--help`, `-h`| Display help |
 
 ### File formats
