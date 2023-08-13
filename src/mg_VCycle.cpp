@@ -200,4 +200,4 @@ void coarseSolve(
   u = u + delta_u;
 }
 
-template void mg_VCycle<Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::SimplicialLDLT<Eigen::SparseMatrix<double, 0, int>, 1, Eigen::AMDOrdering<int> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, int const&, int const&, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, std::__1::vector<mg_data, std::__1::allocator<mg_data> >&);
+template void mg_VCycle<Eigen::Matrix<double, -1, 1, 0, -1, 1>, Eigen::Matrix<double, -1, 1, 0, -1, 1> >(Eigen::SimplicialLDLT<Eigen::SparseMatrix<double, 0, int>, 1, Eigen::AMDOrdering<int> > const&, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> > const&, int const&, int const&, int, Eigen::PlainObjectBase<Eigen::Matrix<double, -1, 1, 0, -1, 1> >&, std::vector<mg_data, std::allocator<mg_data> >&);
