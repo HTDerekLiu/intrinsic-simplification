@@ -4,10 +4,12 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <iostream>
-#include <math.h> 
+#include <math.h>
 #include <set>
 #include <tuple>
 #include <vector>
+
+#include <igl/PI.h>
 
 #include "is_boundary_vertex.h"
 #include "is_ear_vertex.h"

@@ -7,6 +7,7 @@
 #include <vector>
 #include <math.h>
 
+#include <igl/PI.h>
 #include <igl/cumsum.h>
 
 #include "is_boundary_vertex.h"

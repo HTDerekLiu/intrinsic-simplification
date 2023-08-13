@@ -10,6 +10,8 @@
 #include <vector>
 #include <unordered_set>
 
+#include <igl/PI.h>
+
 #include "is_interior_vertex.h"
 #include "vertex_one_ring_face_sides.h"
 #include "vertex_one_ring_unique_face_sides.h"

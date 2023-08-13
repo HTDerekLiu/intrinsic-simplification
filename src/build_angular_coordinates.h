@@ -7,6 +7,7 @@
 #include <vector>
 #include <cmath>
 
+#include <igl/PI.h>
 #include <igl/cumsum.h>
 
 #include "vertex_one_ring_face_sides.h"

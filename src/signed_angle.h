@@ -4,6 +4,8 @@
 #include <Eigen/Core>
 #include <math.h>
 
+#include <igl/PI.h>
+
 // Given two 2d vectors (u, v), compute the signed angle between them
 double signed_angle(
 	const Eigen::Vector2d & u,

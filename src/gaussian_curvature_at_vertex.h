@@ -5,6 +5,8 @@
 #include <Eigen/Dense>
 #include <vector>
 
+#include <igl/PI.h>
+
 #include <opposite_corner_angle.h>
 #include <twin.h>
 #include <next.h>

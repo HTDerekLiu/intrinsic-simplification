@@ -8,6 +8,8 @@
 #include <set>
 #include <iostream>
 
+#include <igl/PI.h>
+
 #include "opposite_corner_angle.h"
 #include "global_variables.h"
 

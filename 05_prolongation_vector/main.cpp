@@ -7,6 +7,7 @@
 #include <igl/read_triangle_mesh.h>
 #include <igl/eigs.h>
 #include <igl/massmatrix_intrinsic.h>
+#include <igl/PI.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>

@@ -4,6 +4,8 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
+#include <igl/PI.h>
+
 #include "next.h"
 #include "twin.h"
 #include "opposite_corner_angle.h"

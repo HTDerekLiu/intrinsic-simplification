@@ -7,6 +7,8 @@
 #include <math.h> 
 #include <set>
 
+#include <igl/PI.h>
+
 #include "is_interior_vertex.h"
 #include "vertex_one_ring_face_sides.h"
 #include "opposite_corner_angle.h"
