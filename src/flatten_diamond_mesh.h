@@ -4,12 +4,11 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-#include <igl/PI.h>
-
 #include "next.h"
 #include "twin.h"
 #include "opposite_corner_angle.h"
 #include "roll1d.h"
+#include "pi.h"
 
 /*
 flatten the diamond of a face side into 2D 

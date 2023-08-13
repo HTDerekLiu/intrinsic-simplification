@@ -5,8 +5,6 @@
 #include <Eigen/Dense>
 #include <vector>
 
-#include <igl/PI.h>
-
 #include <opposite_corner_angle.h>
 #include <twin.h>
 #include <next.h>
@@ -15,13 +13,15 @@
 #include <vertex_one_ring_unique_face_sides.h>
 #include <vertex_one_ring_face_sides.h>
 #include <global_variables.h>
+#include <pi.h>
+
 /*
 Computes discrete gaussian curvature for a given vertex. For boundary vertices, we output geodesic curvature
 
 Input
-    G: |F|x3x2 array of gluing map. 
+    G: |F|x3x2 array of gluing map.
     El: |F|x3 array of face-side lengths
-    v2fs: |V|x2 array of face-sides. V2FS[v] outputs one face-side starting from this vertex 
+    v2fs: |V|x2 array of face-sides. V2FS[v] outputs one face-side starting from this vertex
     v: vertex index
 
 Outputs

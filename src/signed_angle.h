@@ -4,7 +4,7 @@
 #include <Eigen/Core>
 #include <math.h>
 
-#include <igl/PI.h>
+#include <pi.h>
 
 // Given two 2d vectors (u, v), compute the signed angle between them
 double signed_angle(

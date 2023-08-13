@@ -7,7 +7,6 @@
 #include <vector>
 #include <math.h>
 
-#include <igl/PI.h>
 #include <igl/cumsum.h>
 
 #include "is_boundary_vertex.h"
@@ -15,6 +14,7 @@
 #include "opposite_corner_angle.h"
 #include "twin.h"
 #include "next.h"
+#include "pi.h"
 
 // this function updates the angular coordinate of a vertex with the same connecivity. This function will keep the angular coordinate to have the same origin as the original `A`
 void update_angular_coordinate(

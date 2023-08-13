@@ -4,8 +4,6 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 
-#include <igl/PI.h>
-
 #include "twin.h"
 #include "next.h"
 #include "opposite_corner_angle.h"
@@ -15,6 +13,7 @@
 #include "is_same_face_side.h"
 #include "global_variables.h"
 #include "vertex_one_ring_face_sides.h"
+#include "pi.h"
 
 // insert a new face side (without angular coordinate) to the angular coordinate of a vertex
 

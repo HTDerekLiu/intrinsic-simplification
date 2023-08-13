@@ -8,12 +8,11 @@
 #include <vector>
 #include <math.h>
 
-#include <igl/PI.h>
-
 #include "is_boundary_face_side.h"
 #include "global_variables.h"
 #include "opposite_corner_angle.h"
 #include "twin.h"
+#include "pi.h"
 
 /*
     Test if the edge given by face-side fs satisfies the intrinsic Delaunay property.

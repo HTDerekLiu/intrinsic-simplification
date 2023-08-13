@@ -10,8 +10,6 @@
 #include <vector>
 #include <unordered_set>
 
-#include <igl/PI.h>
-
 #include "is_interior_vertex.h"
 #include "vertex_one_ring_face_sides.h"
 #include "vertex_one_ring_unique_face_sides.h"
@@ -25,6 +23,7 @@
 #include "global_variables.h"
 #include "update_angular_coordinate.h"
 #include "is_one_ring_fs_valid.h"
+#include "pi.h"
 
 /*
 pre flattening an interior vertex and compute the flattening cost. Note that this will not change the input arguments, it only computes the decimation cost

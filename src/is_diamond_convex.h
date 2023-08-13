@@ -6,12 +6,11 @@
 #include <iostream>
 #include <cmath>
 
-#include <igl/PI.h>
-
 #include "global_variables.h"
 #include "twin.h"
 #include "next.h"
 #include "opposite_corner_angle.h"
+#include "pi.h"
 
 // this function check the diamond of the face-side is convex or not. Specifically, check whether angle_v0 or angle_v1 is larger than np.pi
 // Input
