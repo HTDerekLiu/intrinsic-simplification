@@ -13,10 +13,10 @@ jobs:
     steps:
     - uses: actions/checkout@v1
       with:
-        submodules: true
+        submodules: recursive
 
     - name: configure
-      run: cd 00_coarsening && mkdir build && cd build && cmake -DPOLYSCOPE_BACKEND_OPENGL3_GLFW=OFF -DPOLYSCOPE_BACKEND_OPENGL_MOCK=ON ..
+      run: cd 00_coarsening && mkdir build && cd build && cmake -DPOLYSCOPE_BACKEND_OPENGL3_GLFW=ON -DPOLYSCOPE_BACKEND_OPENGL_MOCK=ON ..
 
     - name: build
       run: cd 00_coarsening/build && cmake --build "."
