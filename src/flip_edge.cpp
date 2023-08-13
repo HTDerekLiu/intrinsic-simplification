@@ -48,7 +48,7 @@ void flip_edge(
 	using namespace std;
 	using namespace global_variables;
 
-	assert(not is_boundary_face_side(G,s0));
+	assert(!is_boundary_face_side(G,s0));
 	assert(is_diamond_convex(G,l,s0));
 
 	Vector2i t0 = twin(G, s0);

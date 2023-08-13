@@ -5,13 +5,14 @@
 #include <Eigen/Dense>
 #include <iostream>
 #include <vector>
-#include <math.h> 
+#include <math.h>
 
 #include "is_boundary_vertex.h"
 #include "vertex_one_ring_face_sides.h"
 #include "opposite_corner_angle.h"
 #include "twin.h"
 #include "next.h"
+#include "pi.h"
 
 /*
 given a vertex v, this method outputs the maximum valid value in the angular coordinate. For interior vertex, this is always 2pi. For boundary vertex, this is [0,2pi]
@@ -21,7 +22,7 @@ Inputs:
     l: edge lengths
     v2fs: vertex to fs map
     v: vertex index
-    
+
 Outputs:
     angle_range
 */
