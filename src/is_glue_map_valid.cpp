@@ -18,10 +18,10 @@ bool is_glue_map_valid(
             if (ft != GHOST_INDEX) // not boundary
             {
                 int ftt = G(ft,st*2);
-                int stt = G(ftt,stt*2+1);
+                int stt = G(ftt,st*2+1);
                 if ((ftt!=f) || (stt!=s))
                     return false;
-            }                    
+            }
         }
     }
     return true;
