@@ -5,6 +5,7 @@
 #include "args/args.hxx"
 
 #include <igl/read_triangle_mesh.h>
+#include <igl/slice.h>
 
 #include <Eigen/Core>
 #include <Eigen/Dense>
@@ -15,6 +16,7 @@
 #include <coarsen_mesh.h>
 #include <get_barycentric_points.h>
 #include <remove_unreferenced_intrinsic.h>
+#include <connected_components.h>
 
 int main(int argc, char* argv[]) {
   using namespace Eigen;
@@ -69,6 +71,15 @@ int main(int argc, char* argv[]) {
   build_intrinsic_info(VO, FO, G, l, A, v2fs);
   F = FO;
 
+  // Check if mesh is connected
+  VectorXi v_ids, f_ids;
+  int n_components;
+  connected_components(FO, G, n_components, v_ids, f_ids);
+  if (n_components != 1) {
+      std::cout << "WARNING: input mesh has " << n_components << " connected components. Simplification may behave unexpectedly when the input mesh is not connected." << std::endl;
+  }
+
+  std::cout << "starting simplification..." << std::endl;
   auto start = high_resolution_clock::now();
 
   int total_removal = VO.rows() - n_coarse_vertices;
@@ -76,6 +87,7 @@ int main(int argc, char* argv[]) {
   MatrixXd BC;
   vector<vector<int>> F2V;
   coarsen_mesh(total_removal, weight, F, G, l, A, v2fs, BC, F2V);
+  std::cout << "finished simplification..." << std::endl;
 
   auto stop     = high_resolution_clock::now();
   auto duration = duration_cast<microseconds>(stop - start);
@@ -93,7 +105,13 @@ int main(int argc, char* argv[]) {
   igl::slice(VO,vIdx,1,V);
 
   polyscope::init();
-  polyscope::registerSurfaceMesh("input mesh", VO, FO);
+  auto psInputMesh = polyscope::registerSurfaceMesh("input mesh", VO, FO);
+  if (n_components > 1) {
+      VectorXd colors = VectorXd::Random(n_components);
+      VectorXd vertex_colors;
+      igl::slice(colors, v_ids, 1, vertex_colors);
+      psInputMesh->addVertexScalarQuantity("component_color", vertex_colors);
+  }
   polyscope::registerSurfaceMesh("coarsened mesh (with wrong edge length)", V, F);
   polyscope::registerPointCloud("barycentric points from the input", P);
   polyscope::view::lookAt(glm::vec3{1.5, 1.5, 3}, glm::vec3{0., 0., 0.});

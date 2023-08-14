@@ -21,6 +21,7 @@
 #include <get_vertex_connection_laplacian.h>
 #include <get_vertex_vector_prolongation.h>
 #include <save_complex_matrix.h>
+#include <connected_components.h>
 
 // find eigenvector using simple power iteration
 Eigen::VectorXcd complex_eigenvector(
@@ -121,6 +122,14 @@ int main(int argc, char* argv[]) {
     l = lO;
     A = AO;
     v2fs = vO2fsO;
+
+    // Check if mesh is connected
+    VectorXi v_ids, f_ids;
+    int n_components;
+    connected_components(FO, G, n_components, v_ids, f_ids);
+    if (n_components != 1) {
+        std::cout << "WARNING: input mesh has " << n_components << " connected components. Simplification may behave unexpectedly when the input mesh is not connected." << std::endl;
+    }
 
     int total_removal = VO.rows() - n_coarse_vertices;
     MatrixXd BC;

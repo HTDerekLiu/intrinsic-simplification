@@ -18,6 +18,7 @@
 #include <remove_unreferenced_intrinsic.h>
 #include <query_texture_barycentric.h>
 #include <bake_texture.h>
+#include <connected_components.h>
 
 int main(int argc, char* argv[]) {
   using namespace Eigen;
@@ -90,6 +91,14 @@ int main(int argc, char* argv[]) {
   MatrixXi v2fs; // vertex to faceside map
   build_intrinsic_info(VO, FO, G, l, A, v2fs);
   F = FO;
+
+  // Check if mesh is connected
+  VectorXi v_ids, f_ids;
+  int n_components;
+  connected_components(FO, G, n_components, v_ids, f_ids);
+  if (n_components != 1) {
+    std::cout << "WARNING: input mesh has " << n_components << " connected components. Simplification may behave unexpectedly when the input mesh is not connected." << std::endl;
+  }
 
   int total_removal = VO.rows() - n_coarse_vertices;
   MatrixXd BC;

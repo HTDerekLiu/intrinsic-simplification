@@ -22,6 +22,7 @@
 #include <mass_matrix.h>
 #include <cotan_Laplacian.h>
 #include <min_quad_with_fixed_mg.h>
+#include <connected_components.h>
 
 int main(int argc, char* argv[]) {
   using namespace Eigen;
@@ -65,6 +66,14 @@ int main(int argc, char* argv[]) {
   MatrixXi v2fs; // vertex to faceside map
   build_intrinsic_info(VO, FO, G, l, A, v2fs);
   F = FO;
+
+  // Check if mesh is connected
+  VectorXi v_ids, f_ids;
+  int n_components;
+  connected_components(FO, G, n_components, v_ids, f_ids);
+  if (n_components != 1) {
+    std::cout << "WARNING: input mesh has " << n_components << " connected components. Simplification may behave unexpectedly when the input mesh is not connected." << std::endl;
+  }
 
   vector<mg_data> mg;
   double coarsening_ratio = 0.25;
