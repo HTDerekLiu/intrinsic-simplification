@@ -5,7 +5,7 @@
 #include "args/args.hxx"
 
 #include <igl/read_triangle_mesh.h>
-#include <igl/eigs.h>
+#include <igl/cotmatrix_intrinsic.h>
 #include <igl/massmatrix_intrinsic.h>
 
 #include <Eigen/Core>
@@ -54,7 +54,7 @@ int main(int argc, char* argv[]) {
                                                      " perform intrinsic Delaunay refinement"
                                                      " before simplification or after"
                                                      " simplification. (Options: BEFORE, AFTER,"
-                                                     " BOTH, NEITHER; default=BEFORE)",
+                                                     " BOTH, NEITHER; default=AFTER)",
                                                      {'r', "refinement_time"}
                                                      );
     args::ValueFlag<int> texture_width_arg(parser, "texture_width", "Texture width. Set to"
@@ -65,16 +65,29 @@ int main(int argc, char* argv[]) {
                                                   " set, the texture is not saved",
                                                   {'t',"texture_path"});
     args::ValueFlag<std::string> prolongation_matrix_path_arg(parser, "prolongation_matrix_path",
-                                      "File to save vector prolongation matrix to. If not set,"
-                                      " the prolongation matrix is not saved",
+                                      "File to save prolongation matrix""to. If not set, the"
+                                      " prolongation matrix is not saved",
                                       {'p',"prolongation_path"});
     args::ValueFlag<std::string> laplace_matrix_path_arg(parser, "laplace_matrix_path",
-                                      "File to save coarsened connection laplace matrix to."
-                                      " If not set, the laplace matrix is not saved",
-                                      {'l',"laplace_path"});
+                                      "File to save coarsened laplace matrix to. If not set, the"
+                                      " laplace matrix is not computed", {'l',"laplace_path"});
     args::ValueFlag<std::string> mass_matrix_path_arg(parser, "mass_matrix_path",
+                                      "File to save coarsened mass matrix to. If not set, the"
+                                      " mass matrix is not computed", {'m',"mass_path"});
+    args::ValueFlag<std::string> v_prolongation_matrix_path_arg(parser,
+                                      "vector_prolongation_matrix_path",
+                                      "File to save vector prolongation matrix to. If not set,"
+                                      " the prolongation matrix is not saved",
+                                      {"vp","vector_prolongation_path"});
+    args::ValueFlag<std::string> v_laplace_matrix_path_arg(parser,
+                                      "connection_laplace_matrix_path",
+                                      "File to save coarsened connection laplace matrix to."
+                                      " If not set, the laplace matrix is not computed",
+                                      {"cl","connection_laplace_path"});
+    args::ValueFlag<std::string> v_mass_matrix_path_arg(parser, "vector_mass_matrix_path",
                                      "File to save coarsened vector mass matrix to. If not set,"
-                                     " the mass matrix is not saved", {'m',"mass_path"});
+                                     " the mass matrix is not computed",
+                                     {"vm", "vector_mass_path"});
     args::Flag no_viz_flag(parser, "no_viz", "Write requested output files without showing"
                            " visualization", {'n', "no_viz"});
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
@@ -91,12 +104,13 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::string filename = filename_arg ? args::get(filename_arg) : "../../meshes/spot.obj";
+    std::string filename = filename_arg ? args::get(filename_arg)
+                                        : "../../meshes/dragon_fat.obj";
     int n_coarse_vertices = n_coarse_vertices_arg ? args::get(n_coarse_vertices_arg) : 500;
     double weight = weight_arg ? args::get(weight_arg) : 0;
     int tex_width = texture_width_arg ? args::get(texture_width_arg) : 2048;
 
-    RefinementTime refinement_time = RefinementTime::Before;
+    RefinementTime refinement_time = RefinementTime::After;
     if (refinement_time_arg) {
         std::string refinement_time_str = args::get(refinement_time_arg);
         if (refinement_time_str == "BEFORE") {
@@ -138,6 +152,9 @@ int main(int argc, char* argv[]) {
 
     bool using_texture = tex_width > 0;
 
+    // ======================================================
+    //                    initialization
+    // ======================================================
     int tex_size = (using_texture) ? tex_width * tex_width : 0;
     MatrixXd bary_coords;
     VectorXi bary_faces;
@@ -160,9 +177,6 @@ int main(int argc, char* argv[]) {
     A = AO;
     v2fs = vO2fsO;
 
-    // check if face has been deleted
-    auto is_dead_face = [&](int iF) -> bool { return F(iF, 0) == GHOST_INDEX; };
-
     // Check if mesh is connected
     VectorXi v_ids, f_ids;
     int n_components;
@@ -172,68 +186,6 @@ int main(int argc, char* argv[]) {
           " Simplification may behave unexpectedly when the input mesh is not connected."
                   << std::endl;
     }
-
-    // test insert_degree_three_vertex
-    if (false) {
-        auto bc_to_position = [](int f,
-                                 const Eigen::Vector3d & bc,
-                                 const Eigen::MatrixXd & V,
-                                 const Eigen::MatrixXi & F) -> Eigen::Vector3d {
-            return bc(0) * V.row(F(f, 0)) + bc(1) * V.row(F(f, 1)) + bc(2) * V.row(F(f, 2));
-        };
-
-        auto inside_triangle = [](const Vector3d& v) -> bool {
-          return v(0) >= 0 && v(1) >= 0 && v(2) >= 0;
-        };
-
-        polyscope::init();
-        auto psInput = polyscope::registerSurfaceMesh("input mesh", VO, FO);
-        int f = 3609; // spot.obj
-        std::cout << "Face vertices: " << F.row(f) << std::endl;
-        Eigen::Vector3d b{0.1, 0.3, 0.6};
-        Eigen::Vector3d x = bc_to_position(f, b, VO, FO);
-        auto psNewPoint = polyscope::registerPointCloud("inserted point", x.transpose());
-
-        int nPts = 25;
-        Eigen::MatrixXd BC(nPts, 3), pt_positions(nPts, 3);
-        std::vector<std::vector<int>> F2V(F.rows(), std::vector<int>{});
-        for (int iP = 0; iP < nPts; iP++) {
-            Eigen::Vector3d pb = Eigen::Vector3d::Random().cwiseAbs();
-            pb /= pb.sum();
-            BC.row(iP) = pb;
-            F2V[f].push_back(iP);
-            pt_positions.row(iP) = bc_to_position(f, pb, VO, FO);
-        }
-        double r = 0.001;
-        polyscope::registerPointCloud("original points", pt_positions)->setPointRadius(r);
-
-        int v = insert_degree_three_vertex(f, b, F, G, l, A, v2fs, BC, F2V);
-        Eigen::MatrixXd V = VO;
-        V.conservativeResize(V.rows()+1, 3);
-        V.row(v) = x;
-
-        auto psSubdivided = polyscope::registerSurfaceMesh("subdivided mesh", V, F);
-        Eigen::MatrixXd aa(F2V[f].size(), 3), bb(F2V[F.rows()-2].size(), 3),
-                        cc(F2V[F.rows()-1].size(), 3);
-        int ii = 0;
-        for (int iP : F2V[f]) {
-          aa.row(ii++) = bc_to_position(f, BC.row(iP), V, F);
-        }
-        ii = 0;
-        for (int iP : F2V[F.rows()-2]) {
-          bb.row(ii++) = bc_to_position(F.rows()-2, BC.row(iP), V, F);
-        }
-        ii = 0;
-        for (int iP : F2V[F.rows()-1]) {
-          cc.row(ii++) = bc_to_position(F.rows()-1, BC.row(iP), V, F);
-        }
-        polyscope::registerPointCloud("subdivided points a", aa)->setPointRadius(r);
-        polyscope::registerPointCloud("subdivided points b", bb)->setPointRadius(r);
-        polyscope::registerPointCloud("subdivided points c", cc)->setPointRadius(r);
-
-        polyscope::show();
-    }
-
 
     MatrixXd BC;
     vector<vector<int>> F2V;
@@ -254,23 +206,22 @@ int main(int argc, char* argv[]) {
         }
     }
     BC.conservativeResize(nVO + iP, 3); // only keep active pixels
-    int nPix = BC.rows();
 
-    // pre-refinement
+    // ======================================================
+    //                    retriangulation
+    // ======================================================
+
+    // == refinement before coarsening
     if (refinement_time == RefinementTime::Before
         || refinement_time == RefinementTime::Both) {
-        delaunay_refine(F, G, l, A, v2fs, BC, F2V);
+        cout << "refining before coarsening ... " << endl;
+        int n_insertions = delaunay_refine(F, G, l, A, v2fs, BC, F2V);
+        cout << "   inserted " << n_insertions << " new vertices" << endl;
 
         nV = 0; // recount number of vertices after refinement
         for (int iV = 0; iV < v2fs.rows(); iV++) {
             // filter out deleted vertices
             if (v2fs(iV, 0) != GHOST_INDEX) nV++;
-        }
-
-
-        for (int f = 0; f < F.rows(); f++) {
-            if (is_dead_face(f) && !F2V[f].empty())
-              throw std::runtime_error("dead face contains pts");
         }
 
         // rebuild BC array to make space for new vertices
@@ -280,7 +231,8 @@ int main(int argc, char* argv[]) {
         new_BC.setConstant(DOUBLE_INF);
 
         for (int iF = 0; iF < F.rows(); iF++) {
-          if (is_dead_face(iF)) continue;
+          // skip deleted faces
+          if (F(iF, 0) == GHOST_INDEX) continue;
 
           for (int& iP : F2V[iF]) {
             new_BC.row(iP + index_shift) = BC.row(iP);
@@ -289,163 +241,107 @@ int main(int argc, char* argv[]) {
         }
 
         BC = new_BC;
-        nVO = v2fs.rows();
+        nV = v2fs.rows();
     }
 
-    polyscope::init();
-    auto psMesh  = polyscope::registerSurfaceMesh("input mesh", VO, FO);
+    // == coarsening
+    int total_removal = nV - n_coarse_vertices;
+    cout << "coarsening ... " << endl;
+    coarsen_mesh(total_removal, weight, F, G, l, A, v2fs, BC, F2V);
 
-    auto snapshot = [&](std::string name, int padded_length = 3) {
-      cout << "baking texture with nVO = " << nVO
-           << ", iP = " << iP
-           << ", F2V.size() = " << F2V.size()
-           << ", texture size = " << hit_mask.size() << endl;
-      std::vector<unsigned char> texture;
-      bake_texture(texture, F, F2V, hit_mask, nVO);
-
-      // convert parameterization to polyscope's desired input format
-      Eigen::Matrix<glm::vec2, Dynamic, 1> parameterization(3 * UF.rows());
-      for (int iF = 0; iF < UF.rows(); iF++) {
-        for (int iC = 0; iC < 3; iC++) {
-          parameterization(3 * iF + iC) = glm::vec2{UV(UF(iF, iC), 0), UV(UF(iF, iC), 1)};
-        }
-      }
-      name.insert(name.begin(), padded_length - name.size(), ' ');
-      auto q = psMesh->addParameterizationQuantity("intrinsic triangulation " + name, parameterization)
-        ->setTexture(tex_width, tex_width, texture, polyscope::TextureFormat::RGBA8);
-      q->setEnabled(true);
-      q->setStyle(polyscope::ParamVizStyle::TEXTURE);
-      q->setCheckerSize(1);
-
-      // polyscope::registerSurfaceMesh2D("UV " + name, UV, UF);
-    };
-
-    if (true) {
-        // int step = 1;
-        // int f_watch = 1371;
-        // for (int i = 0; i < 5; i+=step) {
-        //   if (!is_dead_face(f_watch)){
-        //     cout << "iteration " << i << " | face " << f_watch << " contains points: " << endl;
-        //     if (f_watch >= F2V.size()) {
-        //       std::cout << "f_watch " << f_watch << " >= F2V.size() " << F2V.size() << endl;
-        //     }
-        //     for (int iP : F2V[f_watch]) {
-        //       cout << "  " << iP <<  " (" << (iP - nVO) << ") | " << BC.row(iP) << endl;
-        //     }}
-        //     snapshot(std::to_string(i));
-
-        //     // check that we've kept all points
-        //     int nPts = 0;
-        //     for (int iF = 0; iF < F.rows(); iF++) {
-        //         if (F(iF, 0) < 0) continue;
-        //         for (int idx : F2V[iF]) {
-        //           if (idx >= nVO) {
-        //             nPts++;
-        //           }
-        //         }
-        //     }
-        //     if (nPts + nVO != BC.rows()) {
-        //       std::cout << "Error, found " << nPts << " points, but there should be " << (BC.rows() - nVO) << std::endl;
-        //     }
-        //     cout << "started with " << nPix << " bary coords, and now we have " << BC.rows() << endl;
-        //     cout << "done with info dump" << endl << endl;
-
-        //     coarsen_mesh(step, weight, F, G, l, A, v2fs, BC, F2V);
-        // }
-        // coarsening
-        int total_removal = nV - n_coarse_vertices;
-        coarsen_mesh(total_removal, weight, F, G, l, A, v2fs, BC, F2V);
-
-        // cout << "removed " << total_removal << " vertices" << endl;
-    }
-
-    // post-refinement
+    // == refinement after coarsening
     if (refinement_time == RefinementTime::After
         || refinement_time == RefinementTime::Both) {
-        delaunay_refine(F, G, l, A, v2fs, BC, F2V);
+        cout << "refining after coarsening ... " << endl;
+        int n_insertions = delaunay_refine(F, G, l, A, v2fs, BC, F2V);
+        cout << "   inserted " << n_insertions << " new vertices" << endl;
     }
 
-    // removed unreferenced vertices
-    // map<int, int> IMV, IMF;
-    // VectorXi vIdx, fIdx;
-    // remove_unreferenced_intrinsic(F, G, l, A, v2fs, F2V, IMV, IMF, vIdx, fIdx);
-    // MatrixXd V; // TODO: interpolate vertex positions to inserted vertices
-    // igl::slice(VO,vIdx,1,V);
-
-
+    // ======================================================
+    //               compute assorted outputs
+    // ======================================================
+    std::vector<unsigned char> texture;
     if (using_texture) {
-        std::vector<unsigned char> texture;
-        bake_texture(texture, F, F2V, hit_mask, nVO);
+        bake_texture(texture, F, F2V, hit_mask, nV);
 
         if (texture_path_arg) {
             std::string texture_path = args::get(texture_path_arg);
             bake_texture(texture_path, texture);
         }
-
-        // convert parameterization to polyscope's desired input format
-        Eigen::Matrix<glm::vec2, Dynamic, 1> parameterization(3 * UF.rows());
-        for (int iF = 0; iF < UF.rows(); iF++) {
-            for (int iC = 0; iC < 3; iC++) {
-                parameterization(3 * iF + iC) = glm::vec2{UV(UF(iF, iC), 0), UV(UF(iF, iC), 1)};
-            }
-        }
-        auto q = psMesh->addParameterizationQuantity("intrinsic triangulation", parameterization)
-                  ->setTexture(tex_width, tex_width, texture, polyscope::TextureFormat::RGBA8);
-        q->setEnabled(true);
-        q->setStyle(polyscope::ParamVizStyle::TEXTURE);
-        q->setCheckerSize(1);
-
-        // polyscope::registerSurfaceMesh2D("uv", UV, UF);
     }
 
-    polyscope::show();
+    // removed unreferenced vertices
+    map<int, int> IMV, IMF;
+    VectorXi vIdx, fIdx;
+    remove_unreferenced_intrinsic(F, G, l, A, v2fs, F2V, IMV, IMF, vIdx, fIdx);
 
-    /*
-    // get vector prolongation matrix
-    SparseMatrix<std::complex<double>> P;
-    get_vertex_vector_prolongation(FO, GO, lO, AO, vO2fsO,
-                                   F,  G,  l,  A,  v2fs,
-                                   vIdx, F2V, BC, P);
+    // get scalar prolongation matrix
+    SparseMatrix<double> P;
+    get_prolongation(F, BC.block(0, 0, nVO, 3), F2V, IMV, P);
 
-    // construct a hat function on the simplified mesh
-    VectorXcd hat_function = VectorXd::Zero(V.rows());
-    hat_function(0) = 1;
+    // create a scalar hat function on the simplified mesh
+    // int i_hat = (int)(vIdx.rows() * 0.45);
+    int i_hat = (int)(vIdx.rows() * 0.25);
+    VectorXd hat_function = VectorXd::Zero(vIdx.rows());
+    hat_function(i_hat) = 1;
 
     // prolong the hat function to the fine mesh
-    VectorXcd hatO = P * hat_function;
+    VectorXd hatO = P * hat_function;
 
-    // // construct smooth vector field on simplified mesh using Globally-Optimal Direction Fields (Crane+ 2013)
-    SparseMatrix<complex<double>> L;
-    get_vertex_connection_laplacian(F, G, l, A, v2fs, L);
+    // get vector prolongation matrix
+    SparseMatrix<std::complex<double>> vP;
+    get_vertex_vector_prolongation(FO, GO, lO, AO, vO2fsO,
+                                   F,  G,  l,  A,  v2fs,
+                                   vIdx, F2V, BC.block(0, 0, nVO, 3), vP);
 
-    SparseMatrix<double> Mreal;
-    igl::massmatrix_intrinsic(l, F, igl::MASSMATRIX_TYPE_BARYCENTRIC, Mreal);
-    SparseMatrix<complex<double>> M = Mreal.cast<complex<double>>();
+    // construct a vector hat function on the simplified mesh
+    VectorXcd vector_hat_function = VectorXd::Zero(vIdx.rows());
+    vector_hat_function(i_hat) = 1;
 
-    // VectorXcd f = complex_eigenvector(L, M);
-    // for (int iV = 0; iV < f.rows(); iV++) f(iV) /= std::abs(f(iV));
+    // prolong the hat function to the fine mesh
+    VectorXcd vector_hatO = vP * vector_hat_function;
 
-    // // prolong the smooth vector field to the fine mesh
-    // VectorXcd fO = P * f;
-
-    // get tangent bases to visualize fields
-    Eigen::MatrixXd basisXO, basisYO, basisX, basisY;
+    // get a tangent basis to visualize fields
+    Eigen::MatrixXd basisXO, basisYO;
     get_extrinsic_tangent_basis(VO, FO, AO, vO2fsO, basisXO, basisYO);
-    get_extrinsic_tangent_basis(V, F, A, v2fs, basisX, basisY);
 
     if (prolongation_matrix_path_arg) {
         std::string path = args::get(prolongation_matrix_path_arg);
-        save_complex_matrix(P, path);
+        save_matrix(P, path);
     }
 
     if (laplace_matrix_path_arg) {
         std::string path = args::get(laplace_matrix_path_arg);
-        save_complex_matrix(L, path);
+        SparseMatrix<double> L;
+        igl::cotmatrix_intrinsic(l, F, L);
+        save_matrix(L, path);
     }
 
     if (mass_matrix_path_arg) {
         std::string path = args::get(mass_matrix_path_arg);
-        save_complex_matrix(M, path);
+        SparseMatrix<double> M;
+        igl::massmatrix_intrinsic(l, F, igl::MASSMATRIX_TYPE_BARYCENTRIC, M);
+        save_matrix(M, path);
+    }
+
+    if (v_prolongation_matrix_path_arg) {
+        std::string path = args::get(prolongation_matrix_path_arg);
+        save_complex_matrix(vP, path);
+    }
+
+    if (v_laplace_matrix_path_arg) {
+      std::string path = args::get(v_laplace_matrix_path_arg);
+      SparseMatrix<complex<double>> cL;
+      get_vertex_connection_laplacian(F, G, l, A, v2fs, cL);
+      save_complex_matrix(cL, path);
+    }
+
+    if (v_mass_matrix_path_arg) {
+      std::string path = args::get(v_mass_matrix_path_arg);
+      SparseMatrix<double> Mreal;
+      igl::massmatrix_intrinsic(l, F, igl::MASSMATRIX_TYPE_BARYCENTRIC, Mreal);
+      SparseMatrix<complex<double>> vM = Mreal.cast<complex<double>>();
+      save_complex_matrix(vM, path);
     }
 
     if (no_viz_flag) {
@@ -453,14 +349,26 @@ int main(int argc, char* argv[]) {
     }
 
     polyscope::init();
-    auto psInput = polyscope::registerSurfaceMesh("input mesh", VO, FO);
-    psInput->addVertexTangentVectorQuantity("prolonged hat function", hatO, basisXO, basisYO);
-    // psInput->addVertexTangentVectorQuantity("prolonged smooth field", fO, basisXO, basisYO)->setEnabled(true);
-    auto psCoarse = polyscope::registerSurfaceMesh("coarsened mesh (with wrong edge length)", V, F);
-    psCoarse->addVertexTangentVectorQuantity("hat function", hat_function, basisX, basisY);
-    // psCoarse->addVertexTangentVectorQuantity("smooth field", f, basisX, basisY)->setEnabled(true);
-    psCoarse->setEnabled(false);
-    polyscope::view::lookAt(glm::vec3{90, 90, 90}, glm::vec3{0., 30, 0.});
+    auto psMesh  = polyscope::registerSurfaceMesh("input mesh", VO, FO);
+
+    if (using_texture) {
+        // convert parameterization to polyscope's desired input format
+        Eigen::Matrix<glm::vec2, Dynamic, 1> parameterization(3 * UF.rows());
+        for (int iF = 0; iF < UF.rows(); iF++) {
+            for (int iC = 0; iC < 3; iC++) {
+                parameterization(3 * iF + iC) = glm::vec2{UV(UF(iF, iC), 0), UV(UF(iF, iC), 1)};
+            }
+        }
+        auto q = psMesh->addParameterizationQuantity("intrinsic triangulation",
+                                                     parameterization)
+                  ->setTexture(tex_width, tex_width, texture, polyscope::TextureFormat::RGBA8);
+        q->setEnabled(true);
+        q->setStyle(polyscope::ParamVizStyle::TEXTURE);
+        q->setCheckerSize(1);
+    }
+
+    psMesh->addVertexScalarQuantity("prolonged scalar hat function", hatO);
+    psMesh->addVertexTangentVectorQuantity("prolonged vector hat function",
+                                           hatO, basisXO, basisYO);
     polyscope::show();
- */
 }

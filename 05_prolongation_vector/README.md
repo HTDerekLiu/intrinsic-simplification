@@ -30,9 +30,9 @@ The script takes a variety of arguments.
 |flag | purpose|
 | ------------- |-------------|
 |`--area_weight=0`| Influence of vertex area on coarsening. 0: none, while 1: pure area weighting. (default=`0`) |
-|`--prolongation_matrix_path=prolongation_matrix.spmat`| File to save vector prolongation matrix to. If not set, the prolongation matrix is not saved |
-|`--laplace_matrix_path=laplace_matrix.spmat`| File to save simplified connection Laplacian matrix to. If not set, the connection Laplacian is not saved |
-|`--mass_matrix_path=mass_matrix.spmat`| File to save simplified vector mass matrix to. If not set, the mass matrix is not saved |
+|`--prolongation_path=prolongation_matrix.spmat`| File to save vector prolongation matrix to. If not set, the prolongation matrix is not saved |
+|`--laplace_path=laplace_matrix.spmat`| File to save simplified connection Laplacian matrix to. If not set, the connection Laplacian is not saved |
+|`--mass_path=mass_matrix.spmat`| File to save simplified vector mass matrix to. If not set, the mass matrix is not saved |
 |`--no_viz`| Write requested output files without showing visualization |
 |`--help`, `-h`| Display help |
 

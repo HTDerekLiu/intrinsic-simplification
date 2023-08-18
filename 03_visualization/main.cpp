@@ -113,13 +113,15 @@ int main(int argc, char* argv[]) {
   BC.setConstant(0.0);
   F2V.resize(nF);
 
+  size_t iP = 0;
   for (int i = 0; i < tex_size; i++) {
-    int idx = i + nV;
     if (hit_mask(i)) {
-      BC.row(i + nV) = bary_coords.row(i);
-      F2V[bary_faces(i)].push_back(idx);
+      BC.row(nV + iP) = bary_coords.row(i);
+      F2V[bary_faces(i)].push_back(nV + iP);
+      iP++;
     }
   }
+  BC.conservativeResize(nV + iP, 3); // only keep active pixels
 
   coarsen_mesh(total_removal, weight, F, G, l, A, v2fs, BC, F2V);
 

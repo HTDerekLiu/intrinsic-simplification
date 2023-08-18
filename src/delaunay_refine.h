@@ -24,8 +24,10 @@ Inputs:
     max_iterations: maximum number of iterations in refinement algorithm. If negative, algorithm runs until quality criteria are satisfied.
 Outputs:
     F, G, l, A, v2fs, BC, F2V are changed in place
+
+    returns the number of inserted vertices
 */
-void delaunay_refine(
+int delaunay_refine(
   Eigen::MatrixXi & F,
   Eigen::MatrixXi & G,
   Eigen::MatrixXd & l,

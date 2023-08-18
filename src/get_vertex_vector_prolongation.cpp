@@ -25,6 +25,7 @@ void get_vertex_vector_prolongation(
     {
       for (int vO : F2V[fc])
         {
+          if (vO > VO2fc.rows()) continue;
           VO2fc(vO) = fc;
         }
     }

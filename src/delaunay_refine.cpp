@@ -74,7 +74,7 @@ std::unordered_map<int, double> vertex_dijkstra_ball(Eigen::MatrixXi & F,
     return shortest_dist;
 }
 
-void delaunay_refine(
+int delaunay_refine(
                      Eigen::MatrixXi & F,
                      Eigen::MatrixXi & G,
                      Eigen::MatrixXd & l,
@@ -540,5 +540,6 @@ void delaunay_refine(
     } while (!delaunay_check_queue.empty() || !circumradius_check_queue.empty()
              || recheck_count < MAX_RECHECK_COUNT);
 
+    return n_insertions;
 }
 
