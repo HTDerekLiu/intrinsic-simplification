@@ -66,6 +66,10 @@ int insert_degree_three_vertex(
         return v(0) >= 0 && v(1) >= 0 && v(2) >= 0;
     };
 
+    if(!inside_triangle(b)) {
+        throw std::invalid_argument("vertex insertion point is outside of triangle");
+    }
+
     auto vertex_angle_sum = [&](int iV) -> double {
         vector<Vector2i> one_ring_fs;
         vertex_one_ring_face_sides(G, v2fs.row(iV), one_ring_fs);
@@ -216,6 +220,9 @@ int insert_degree_three_vertex(
     F2V[f] = resident_points[0];
     F2V.push_back(resident_points[1]);
     F2V.push_back(resident_points[2]);
+
+    // cout << " ----- inserted vertex " << v << " which is incident on faces "
+    //      << f << ", " << nF << ", " << nF+1 << endl;
 
     return v;
 }

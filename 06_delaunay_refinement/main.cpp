@@ -26,6 +26,10 @@
 #include <connected_components.h>
 #include <trace_geodesic.h>
 #include <insert_degree_three_vertex.h>
+#include <query_texture_barycentric.h>
+#include <bake_texture.h>
+#include <delaunay_refine.h>
+#include <flip_to_delaunay.h>
 
 int main(int argc, char* argv[]) {
     using namespace Eigen;
@@ -41,6 +45,10 @@ int main(int argc, char* argv[]) {
                                                 "Number of coarse vertices to leave. (default='500')");
     args::ValueFlag<double> weight_arg(parser, "area_weight",
                                       "Influence of vertex area on coarsening. 0: none, 1: pure area weighting. (default='0')", {'w',"area_weight"});
+    args::ValueFlag<int> texture_width_arg(parser, "texture_width",
+                                           "texture width. Set to -1 to disable texture visualization (default='2048')", {'w',"texture_width"});
+    args::ValueFlag<std::string> texture_path_arg(parser, "texture_path",
+                                                  "File to save texture to. Texture will be saved as a png. If not set, the texture is not saved", {'t',"texture_path"});
     args::ValueFlag<std::string> prolongation_matrix_path_arg(parser, "prolongation_matrix_path",
                                       "File to save vector prolongation matrix to. If not set, the prolongation matrix is not saved", {'p',"prolongation_path"});
     args::ValueFlag<std::string> laplace_matrix_path_arg(parser, "laplace_matrix_path",
@@ -65,12 +73,13 @@ int main(int argc, char* argv[]) {
     std::string filename = filename_arg ? args::get(filename_arg) : "../../meshes/spot.obj";
     int n_coarse_vertices = n_coarse_vertices_arg ? args::get(n_coarse_vertices_arg) : 500;
     double weight = weight_arg ? args::get(weight_arg) : 0;
+    int tex_width = texture_width_arg ? args::get(texture_width_arg) : 2048;
 
     // load mesh
-    MatrixXd VO;
-    MatrixXi F, FO;
+    MatrixXd VO, UV, NV;
+    MatrixXi F, FO, UF, NF;
     {
-        igl::read_triangle_mesh(filename, VO, FO);
+        igl::readOBJ(filename, VO, UV, NV, FO, UF, NF);
     }
 
     if (n_coarse_vertices < 0 ) {
@@ -82,6 +91,12 @@ int main(int argc, char* argv[]) {
         std::cout <<"\t input mesh size: " << VO.rows() << std::endl;
         n_coarse_vertices = VO.rows();
     }
+
+    int tex_size = tex_width*tex_width;
+    MatrixXd bary_coords;
+    VectorXi bary_faces;
+    Matrix<bool, Dynamic, 1> hit_mask;
+    if (tex_width > 0) query_texture_barycentric(UV, UF, tex_width, bary_faces, bary_coords, hit_mask);
 
     MatrixXi G, GO;        // glue map
     MatrixXd l, lO;        // edge lengths
@@ -108,7 +123,7 @@ int main(int argc, char* argv[]) {
         int f_end, f_start = 3609; // spot.obj
         Vector3d b_end, b_start = Vector3d{1,1,1}/3;
         std::vector<std::pair<Vector2i, double>> path;
-        trace_geodesic(f_start, b_start, 40 * Vector3d{1, 0, -1}, GO, lO, f_end, b_end, &path);
+        trace_geodesic(f_start, b_start, 40 * Vector3d{1, 0, -1}, FO, GO, lO, f_end, b_end, &path);
 
         MatrixXd extrinsic_path(path.size() + 2, 3);
         extrinsic_path.row(0) = VO.row(FO(f_start, 0)) * b_start(0)
@@ -132,7 +147,7 @@ int main(int argc, char* argv[]) {
     }
 
     // test insert_degree_three_vertex
-    if (true) {
+    if (false) {
       auto bc_to_position = [](int f, const Eigen::Vector3d & bc,
                                const Eigen::MatrixXd & V, const Eigen::MatrixXi & F) -> Eigen::Vector3d {
           return bc(0) * V.row(F(f, 0)) + bc(1) * V.row(F(f, 1)) + bc(2) * V.row(F(f, 2));
@@ -173,6 +188,85 @@ int main(int argc, char* argv[]) {
       auto psSubddividedPoints = polyscope::registerPointCloud("subdivided points", subdivided_pt_positions);
 
       polyscope::show();
+    }
+
+    // test delaunay refinement
+    if (true) {
+        polyscope::init();
+        auto psMesh  = polyscope::registerSurfaceMesh("input mesh", VO, FO);
+
+        MatrixXd BC;
+        vector<vector<int>> F2V;
+
+        int nV = v2fs.rows();
+        int nF = F.rows();
+        BC.resize(nV + tex_size, 3);
+        BC.setConstant(0.0);
+        F2V.resize(nF);
+
+        for (int i = 0; i < tex_size; i++) {
+            int idx = i + nV;
+            if (hit_mask(i)) {
+                BC.row(i + nV) = bary_coords.row(i);
+                F2V[bary_faces(i)].push_back(idx);
+            }
+        }
+
+        auto snapshot = [&](std::string name) -> void {
+            std::vector<unsigned char> texture;
+            if (tex_width > 0) bake_texture(texture, F, F2V, hit_mask, nV);
+
+            if (tex_width > 0 && texture_path_arg) {
+              std::string texture_path = args::get(texture_path_arg);
+              bake_texture(texture_path, texture);
+            }
+
+            // convert parameterization to polyscope's desired input format
+            Eigen::Matrix<glm::vec2, Dynamic, 1> parameterization(3 * UF.rows());
+            for (int iF = 0; iF < UF.rows(); iF++) {
+              for (int iC = 0; iC < 3; iC++) {
+                parameterization(3 * iF + iC) = glm::vec2{UV(UF(iF, iC), 0), UV(UF(iF, iC), 1)};
+              }
+            }
+            auto q = psMesh->addParameterizationQuantity(name, parameterization)
+              ->setTexture(tex_width, tex_width, texture, polyscope::TextureFormat::RGBA8);
+            q->setEnabled(true);
+            q->setStyle(polyscope::ParamVizStyle::TEXTURE);
+            q->setCheckerSize(1);
+        };
+
+        delaunay_refine(F, G, l, A, v2fs, BC, F2V);
+        snapshot("refined");
+        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), 100);
+        // snapshot("r100");
+        // int step = 5;
+        // int start = 10;
+        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), start);
+        // snapshot("r" + std::to_string(start));
+        // for (int ii = start; ii < 26; ii += step) {
+        //     delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), step);
+        //     // snapshot("r" + std::to_string(ii + step));
+        // }
+        // snapshot("final result");
+        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), 1);
+        // snapshot("r1");
+        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), 1);
+        // snapshot("r2");
+        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), 1);
+        // snapshot("r3");
+        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), 1);
+        // snapshot("r4");
+        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), 1);
+        // snapshot("r6");
+
+        // insert_degree_three_vertex(454, {0.476828,0.221668,0.301503}, F, G, l, A, v2fs, BC, F2V);
+        // flip_to_delaunay(F, G, l, A, v2fs, BC, F2V);
+        // snapshot("insert");
+
+        // Eigen::Vector3d x = VO.row(FO(1186, 0));
+        // polyscope::registerPointCloud("x point", x.transpose());
+
+        polyscope::show();
     }
 
     /*

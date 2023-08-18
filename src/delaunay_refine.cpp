@@ -15,8 +15,9 @@
 #include "remove_ear_vertex.h"
 #include "is_ear_vertex.h"
 #include "trace_geodesic.h"
+#include "insert_degree_three_vertex.h"
+#include "is_delaunay.h" // TODO: remove this
 
-#include <deque>
 #include <queue>
 #include <array>
 #include <vector>
@@ -215,13 +216,13 @@ void delaunay_refine(
     size_t n_insertions = 0;
 
     // Initialize queue of (possibly) non-delaunay edges by pushing all edges onto the queue
-    deque<Vector2i> delaunay_check_queue;
+    queue<Vector2i> delaunay_check_queue;
     MatrixXb in_delaunay_queue(F.rows(), 3);
     in_delaunay_queue.setConstant(true);
 
     for (size_t iF = 0; iF < F.rows(); iF++) {
         for (size_t iS = 0; iS < 3; iS++) {
-            delaunay_check_queue.push_back({iF, iS});
+            delaunay_check_queue.push({iF, iS});
         }
     }
 
@@ -231,8 +232,8 @@ void delaunay_refine(
         return in_delaunay_queue(fs(0), fs(1)) || (fsT != GHOST_FACE_SIDE && in_delaunay_queue(fsT(0), fsT(1)));
     };
 
-    // Return a weight to use for sorting PQ. Usually sorts by biggest area, but also puts faces on boundary first with
-    // weight inf.
+    // Return a weight to use for sorting PQ. Usually sorts by biggest area, but also puts faces
+    // on boundary first with weight inf
     auto area_weight = [&](int iF) -> double {
       for (size_t iS = 0; iS < 3; iS++) {
           if (is_fixed(iF, iS)) return numeric_limits<double>::infinity();
@@ -240,14 +241,10 @@ void delaunay_refine(
       return face_area(iF);
     };
 
-    // Initialize queue of (possibly) circumradius-violating faces, processing the largest faces first (good heuristic)
+    // Define a queue of (possibly) circumradius-violating faces, processing the largest faces
+    // first (good heuristic)
     typedef tuple<double, double, int> AreaFace;
     priority_queue<AreaFace, vector<AreaFace>, less<AreaFace>> circumradius_check_queue;
-    for (size_t iF = 0; iF < F.rows(); iF++) {
-        if (needs_refinement(iF)) {
-            circumradius_check_queue.push(make_tuple(area_weight(iF), face_area(iF), iF));
-        }
-    }
 
     // Function to check the neighbors of an edge for further processing after a flip.
     // TODO: somehow check neighbors after flipping to degree 3
@@ -269,9 +266,8 @@ void delaunay_refine(
         Vector2i fsTN = next(fsT);
         array<Vector2i, 4> neigh_edges {fsN, next(fsN), fsTN, next(fsTN)};
         for (Vector2i fsN : neigh_edges) {
-            // TODO: also check twin?
             if (!fs_in_delaunay_queue(fsN)) {
-                delaunay_check_queue.push_back(fsN);
+                delaunay_check_queue.push(fsN);
                 in_delaunay_queue(fsN(0), fsN(1)) = true;
             }
         }
@@ -284,19 +280,29 @@ void delaunay_refine(
 
             // Get the top element from the queue of possibily non-Delaunay face sides
             Vector2i fs = delaunay_check_queue.front();
-            delaunay_check_queue.pop_front();
+            delaunay_check_queue.pop();
             // if (is_dead(fs(0))) continue; // TODO: do we need this?
+            if (!in_delaunay_queue(fs(0), fs(1))) throw runtime_error("popped face side which is not in queue");
             in_delaunay_queue(fs(0), fs(1)) = false;
 
             // flip if flippable and not delaunay
-            if (!is_delaunay(G,l,fs) && !is_boundary_face_side(G,fs)) {
+            if (!is_delaunay(G, l, fs) && !is_boundary_face_side(G, fs)) {
                 if (is_diamond_convex(G,l,fs)) {
-                    flip_edge(fs,F,G,l,A,v2fs,BC,F2V);
+                    flip_edge(fs, F, G, l, A, v2fs, BC, F2V);
                     check_neighbors_after_flip(fs);
                 }
             }
         }
     };
+
+    // flip to Delaunay and then initialize queue
+    flip_to_delaunay_from_queue();
+
+    for (size_t iF = 0; iF < F.rows(); iF++) {
+      if (needs_refinement(iF)) {
+        circumradius_check_queue.push(make_tuple(area_weight(iF), face_area(iF), iF));
+      }
+    }
 
     auto remove_inserted_vertex = [&](int v) -> int {
         // TODO: grab resulting face to return
@@ -345,7 +351,7 @@ void delaunay_refine(
                     // Add adjacent edges for Delaunay check
                     for (size_t iS = 0; iS < 3; iS++) {
                         if (!fs_in_delaunay_queue({iF, iS})) {
-                            delaunay_check_queue.push_back({iF, iS});
+                            delaunay_check_queue.push({iF, iS});
                             in_delaunay_queue(iF, iS) = true;
                         }
                     }
@@ -362,9 +368,9 @@ void delaunay_refine(
     // Insert the a vertex located at the intrinsic circumcenter of the input face.
     // Mesh must be Delaunay. Returns the index of the inserted vertex (or -1 in case of error)
     auto insert_circumcenter = [&](int iF) -> int {
-        double a = l(iF, 0);
-        double b = l(iF, 1);
-        double c = l(iF, 2);
+        double a = l(iF, 1);
+        double b = l(iF, 2);
+        double c = l(iF, 0);
         double a2 = a * a;
         double b2 = b * b;
         double c2 = c * c;
@@ -379,7 +385,7 @@ void delaunay_refine(
 
         // Data we need from the intrinsic trace
         int f_circumcenter; Vector3d b_circircumcenter;
-        trace_geodesic(iF, barycenter, vec_to_circumcenter, G, l, f_circumcenter, b_circircumcenter);
+        trace_geodesic(iF, barycenter, vec_to_circumcenter, F, G, l, f_circumcenter, b_circircumcenter);
 
         /* TODO
         // If the circumcenter is blocked by an edge, insert the midpoint of that edge instead
@@ -389,17 +395,42 @@ void delaunay_refine(
         }
         */
 
+        // cout << " ... inserting vertex in face " << f_circumcenter << " at position "
+        //      << b_circircumcenter.transpose() << endl;
+
         // === Phase 3: Add the new vertex
-        // return insertVertex(newPositionOnIntrinsic); // TODO
-        return 0;
+        return insert_degree_three_vertex(f_circumcenter, b_circircumcenter, F, G, l, A, v2fs, BC, F2V);
     };
 
     // === Outer iteration: flip and insert until we have a mesh that satisfies both angle
     //                      and circumradius goals
+    // static int iInsert = 0;
     do {
 
         // == First, flip to delaunay
+        // cout << "flipping... queue has size " << delaunay_check_queue.size() << endl;
         flip_to_delaunay_from_queue();
+        // cout << "done flipping... queue has size " << delaunay_check_queue.size() << endl;
+
+        // check Delaunay condition
+        if (false) {
+            for (int iF = 0; iF < F.rows(); iF++) {
+                for (int iS = 0; iS < 3; iS++) {
+                    if (fs_in_delaunay_queue({iF, iS})) {
+                      Vector2i fs{iF, iS};
+                      Vector2i fsT = twin(fs);
+                      cout << "fs: "<< fs.transpose() << " | twin: " << fsT.transpose() << endl;
+                      cout << boolalpha << "fs in queue: " << in_delaunay_queue(iF, iS)
+                          << " | twin in queue: " << (fsT != GHOST_FACE_SIDE && in_delaunay_queue(fsT(0), fsT(1))) << endl;
+                      throw runtime_error("face side left in queue");
+                    }
+                    if (!is_delaunay(G, l, {iF, iS})) {
+                        cout << "twin: " << twin({iF, iS}).transpose() << endl;
+                        throw runtime_error("delaunay flipping failed on face side {" + to_string(iF) + ", " + to_string(iS) + "}");
+                    }
+                }
+            }
+        }
 
         // == Second, insert one circumcenter
 
@@ -422,8 +453,15 @@ void delaunay_refine(
             //     queue when its area was changed
             //   - This face might have been flipped to no longer violate constraint
             if (A == face_area(iF) && needs_refinement(iF)) {
-
-                int new_v = insert_circumcenter(iF); // TODO: implement
+                // cout << "inserting circumcenter " << iInsert++ << endl;
+                int new_v = insert_circumcenter(iF);
+                in_delaunay_queue.conservativeResize(F.rows(), 3); // resize buffer to fit two new faces!
+                in_delaunay_queue(F.rows()-2, 0) = false;
+                in_delaunay_queue(F.rows()-2, 1) = false;
+                in_delaunay_queue(F.rows()-2, 2) = false;
+                in_delaunay_queue(F.rows()-1, 0) = false;
+                in_delaunay_queue(F.rows()-1, 1) = false;
+                in_delaunay_queue(F.rows()-1, 2) = false;
                 if (new_v < 0) {
                     // vertex insertion failed (probably due to a tracing error)
                     continue;
@@ -444,7 +482,7 @@ void delaunay_refine(
                     // Check delaunay constraint
                     for (int iS = 0; iS < 3; iS++) {
                         if (!fs_in_delaunay_queue({iF, iS})) {
-                            delaunay_check_queue.push_back({iF, iS});
+                            delaunay_check_queue.push({iF, iS});
                             in_delaunay_queue(iF, iS) = true;
                         }
                     }
@@ -453,8 +491,9 @@ void delaunay_refine(
             continue;
         }
 
-        // If the circumradius queue is empty, make sure we didn't miss anything
-        // (can happen rarely due to numerics), but don't do this more than a few times,
+        // If we've reached this point, the circumradius queue must be empty.
+        // Now we double check to make sure we didn't miss anything
+        // (which can happen rarely due to numerics), but don't do this more than a few times,
         // to avoid getting stuck in an infinite loop when numerical ultra-badness happens
         if (recheck_count < MAX_RECHECK_COUNT) {
             recheck_count++;
@@ -470,7 +509,7 @@ void delaunay_refine(
                         if (!is_delaunay(G,l,fs) && !is_boundary_face_side(G,fs)
                             && !fs_in_delaunay_queue(fs)) {
 
-                            delaunay_check_queue.push_back(fs);
+                            delaunay_check_queue.push(fs);
                             in_delaunay_queue(iF, iS) = true;
                             any_found = true;
                         }
@@ -483,8 +522,8 @@ void delaunay_refine(
                 break;
             }
         }
-
-    } while (!delaunay_check_queue.empty() || !circumradius_check_queue.empty() || recheck_count < MAX_RECHECK_COUNT);
+    } while (!delaunay_check_queue.empty() || !circumradius_check_queue.empty()
+             || recheck_count < MAX_RECHECK_COUNT);
 
 }
 

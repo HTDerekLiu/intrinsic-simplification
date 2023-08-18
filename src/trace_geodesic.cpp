@@ -71,6 +71,10 @@ bool trace_in_face_barycentric(
     // Test if the vector ends in the triangle
     b_end = b_start + v;
     if (b_end(0) >= 0 && b_end(1) >= 0 && b_end(2) >= 0) {
+        if (::TRACE_PRINT) {
+            cout << "  trace finished in face " << iF << " at position "
+                 << b_end.transpose() << endl << endl;
+        }
         return true;
     }
 
@@ -90,9 +94,11 @@ bool trace_in_face_barycentric(
         }
     }
 
-    t_ray = clamp(t_ray, 0., 1. - ::TRACE_EPS_LOOSE); // clamp to a sane range
+    t_ray = clamp(t_ray, TRACE_EPS_LOOSE, 1. - ::TRACE_EPS_LOOSE); // clamp to a sane range
 
     if (s_end < 0) {
+        cout << "v: " << v.transpose() << endl;
+        cout << "hittable: " << boolalpha << edge_is_hittable[0] << ", " << edge_is_hittable[1] << ", "<< edge_is_hittable[2] << endl;
         throw runtime_error("trace_in_face_barycentric: no edge intersection found");
     }
 
@@ -110,6 +116,7 @@ void trace_geodesic(
                     int f_start,
                     const Eigen::Vector3d & b_start_,
                     const Eigen::Vector3d & v_start_,
+                    const Eigen::MatrixXi & F, // TODO: delete
                     const Eigen::MatrixXi & G,
                     const Eigen::MatrixXd & l,
                     int & f_end,
@@ -121,7 +128,7 @@ void trace_geodesic(
     using namespace global_variables;
 
     if (::TRACE_PRINT) {
-          cout << "\n>>> Trace query (barycentric) from " << f_start << " "
+      cout << ">>> Trace query (barycentric) from " << f_start << " (" << F.row(f_start) <<  ") "
               << b_start_.transpose() << " vec = " << v_start_.transpose() << endl;
     }
 
@@ -151,6 +158,7 @@ void trace_geodesic(
         Vector2i fs_next {G(f_curr, 2 * s_curr), G(f_curr, 2 * s_curr + 1)};
         if (fs_next == GHOST_FACE_SIDE) { // TODO: support barrier edges
           f_end = f_curr;
+          cout << ">>>> hit boundary edge" << endl;
           return;
         }
 
@@ -182,21 +190,29 @@ void trace_geodesic(
         // V_twin^{-1}.V_twin maps from face f to its twin, ordering barycentric coordinates
         // so that side s comes first
         Vector3d position_space = V_curr * permute_barycentric_from_canonical(v_curr, s_curr);
-        v_curr = V_twin.colPivHouseholderQr().solve(position_space);
+        Vector3d v_new = V_twin.colPivHouseholderQr().solve(position_space);
         // project to ensure the vector is in the right direction
-        v_curr(2) = fmax(v_curr(2), ::TRACE_EPS_TIGHT);
+        v_new(2) = fmax(v_new(2), ::TRACE_EPS_TIGHT);
         // Manual displacement projection to sum to 0 to keep it pointing in the right direction
-        double diff = -v_curr.sum();
+        double diff = -v_new.sum();
         if (diff > 0) {
-          v_curr(2) += diff;
+          v_new(2) += diff;
         } else {
-          v_curr += Vector3d{diff, diff, diff} / 3.;
+          v_new += Vector3d{diff, diff, diff} / 3.;
         }
         // reorder barycentric coordinates
-        v_curr = permute_barycentric_to_canonical(v_curr, fs_next(1));
+        v_new = permute_barycentric_to_canonical(v_new, fs_next(1));
         if (::TRACE_PRINT) {
-            cout << "  v (transformed) = " << v_curr.transpose() << endl;
+            cout << "  v (cartesian norm) = " << position_space.norm() * l(f_curr, s_curr) << endl;
+            cout << "  v (transformed) = " << v_new.transpose() << endl;
+            if (v_new.squaredNorm() > 1e10) {
+                cout << "V_curr: " << endl << V_curr << endl;
+                cout << "V_twin: " << endl << V_twin << endl;
+                cout << "l:    " << l.row(f_curr) << endl;
+                cout << "l op: " << l.row(fs_next(0)) << endl;
+            }
         }
+        v_curr = v_new;
 
         //== update face and barycentric coordinates
         f_curr = fs_next(0);
@@ -210,5 +226,4 @@ void trace_geodesic(
         hittable[s_curr] = false;
     }
     f_end = f_curr;
-    b_end = b_curr;
 }
