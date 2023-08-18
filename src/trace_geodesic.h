@@ -17,12 +17,14 @@ Outputs:
     b_end   : vector3 of barycentric coordinates of endpoing point in face f_end
     path    : if not null, stores the list of edge points hit along the geodesic
 
+    returns true if the tracing terminated successfully, and false if tracing stopped at
+    an edge (e.g. due to hitting the boundary)
 */
-void trace_geodesic(
+bool trace_geodesic(
                     int f_start,
                     const Eigen::Vector3d & b_start,
                     const Eigen::Vector3d & v_start,
-                    const Eigen::MatrixXi & F, // TODO: delete
+                    const Eigen::MatrixXi & F, // TODO: only for debugging; delete
                     const Eigen::MatrixXi & G,
                     const Eigen::MatrixXd & l,
                     int & f_end,

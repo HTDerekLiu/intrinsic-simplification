@@ -11,6 +11,7 @@
 #include "vertex_one_ring_face_sides.h"
 #include "opposite_corner_angle.h"
 #include "get_smallest_angular_coordinate.h"
+#include "is_boundary_vertex.h"
 
 // borrowed from remove_degree_three_vertex.cpp
 static void relabel(
@@ -66,7 +67,7 @@ int insert_degree_three_vertex(
         return v(0) >= 0 && v(1) >= 0 && v(2) >= 0;
     };
 
-    if(!inside_triangle(b)) {
+    if (!inside_triangle(b)) {
         throw std::invalid_argument("vertex insertion point is outside of triangle");
     }
 
@@ -85,7 +86,7 @@ int insert_degree_three_vertex(
 
     // store local information
     Matrix<int, 3, 2> boundary_fs_twin;
-    array<double, 3> radial_lengths, boundary_lengths, angular_coords, angle_sums;
+    array<double, 3> radial_lengths, boundary_lengths, ang_coords, ang_scale;
     array<int, 3> faces{f, nF, nF+1}, vertices{F(f, 0), F(f, 1), F(f, 2)};
     for (int iS = 0; iS < 3; iS++) {
         boundary_fs_twin.row(iS) = twin(G, {f, iS});
@@ -93,8 +94,11 @@ int insert_degree_three_vertex(
         edge_bary(iS) -= 1;
         radial_lengths[iS] = sqrt(barycentric_dot_product(edge_bary, edge_bary, l, f));
         boundary_lengths[iS] = l(f, iS);
-        angular_coords[iS] = A(f, iS);
-        angle_sums[iS] = vertex_angle_sum(F(f, iS));
+        ang_coords[iS] = A(f, iS);
+
+        int v = F(f, iS);
+        ang_scale[iS] = (is_boundary_vertex(G, v2fs, v) ? M_PI : 2. * M_PI)
+                        / vertex_angle_sum(F(f, iS));
     }
 
     // update the barycentric coordinates of all existing barycentric coordinates on face f
@@ -197,13 +201,13 @@ int insert_degree_three_vertex(
     //    / .                 . \
     //  v0  --------------------  v1
     //              s0
-    A(f,    0) = angular_coords[0];
-    A(nF,   0) = angular_coords[1];
-    A(nF+1, 0) = angular_coords[2];
+    A(f,    0) = ang_coords[0];
+    A(nF,   0) = ang_coords[1];
+    A(nF+1, 0) = ang_coords[2];
 
-    A(f,    1) = angular_coords[1] + opposite_corner_angle(l, {nF,   1}) / angle_sums[1];
-    A(nF,   1) = angular_coords[2] + opposite_corner_angle(l, {nF+1, 1}) / angle_sums[2];
-    A(nF+1, 1) = angular_coords[0] + opposite_corner_angle(l, {f,    1}) / angle_sums[0];
+    A(f,    1) = ang_coords[1] + opposite_corner_angle(l, {nF,   1}) * ang_scale[1];
+    A(nF,   1) = ang_coords[2] + opposite_corner_angle(l, {nF+1, 1}) * ang_scale[2];
+    A(nF+1, 1) = ang_coords[0] + opposite_corner_angle(l, {f,    1}) * ang_scale[0];
 
     A(f,    2) = 0;
     A(nF,   2) = A(f,  2) + opposite_corner_angle(l, {f,  0});

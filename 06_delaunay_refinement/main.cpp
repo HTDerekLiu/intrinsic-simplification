@@ -26,6 +26,7 @@
 #include <connected_components.h>
 #include <trace_geodesic.h>
 #include <insert_degree_three_vertex.h>
+#include <insert_ear_vertex.h>
 #include <query_texture_barycentric.h>
 #include <bake_texture.h>
 #include <delaunay_refine.h>
@@ -80,6 +81,11 @@ int main(int argc, char* argv[]) {
     MatrixXi F, FO, UF, NF;
     {
         igl::readOBJ(filename, VO, UV, NV, FO, UF, NF);
+
+    }
+    if (UV.rows() == 0) {
+        std::cout << "Error: input mesh has no UV coordinates" << std::endl;
+        exit(1);
     }
 
     if (n_coarse_vertices < 0 ) {
@@ -174,6 +180,58 @@ int main(int argc, char* argv[]) {
       auto psOrigPoints = polyscope::registerPointCloud("original points", pt_positions);
 
       int v = insert_degree_three_vertex(f, b, F, G, l, A, v2fs, BC, F2V);
+      Eigen::MatrixXd V = VO;
+      V.conservativeResize(V.rows()+1, 3);
+      V.row(v) = x;
+
+      auto psSubdivided = polyscope::registerSurfaceMesh("subdivided mesh", V, F);
+      Eigen::MatrixXd subdivided_pt_positions(nPts, 3);
+      for (int f = 0; f < F.rows(); f++) {
+          for (int iP : F2V[f]) {
+            subdivided_pt_positions.row(iP) = bc_to_position(f, BC.row(iP), V, F);
+          }
+      }
+      auto psSubddividedPoints = polyscope::registerPointCloud("subdivided points", subdivided_pt_positions);
+
+      polyscope::show();
+    }
+
+    // test insert_ear_vertex
+    if (false) {
+      auto bc_to_position = [](int f, const Eigen::Vector3d & bc,
+                               const Eigen::MatrixXd & V, const Eigen::MatrixXi & F) -> Eigen::Vector3d {
+          return bc(0) * V.row(F(f, 0)) + bc(1) * V.row(F(f, 1)) + bc(2) * V.row(F(f, 2));
+      };
+
+      polyscope::init();
+      auto psInput = polyscope::registerSurfaceMesh("input mesh", VO, FO);
+
+      int f = 455; // cow-head.obj
+      int s = 0;
+      Eigen::Vector2i fs{f, s};
+      double t = 0.25;
+      Eigen::Vector3d b{1-t, t, 0};
+
+      std::cout << "Face vertices: " << F.row(f) << std::endl;
+
+      Eigen::Vector3d x = bc_to_position(f, b, VO, FO);
+      auto psNewPoint = polyscope::registerPointCloud("inserted point", x.transpose());
+
+      int nPts = 25;
+      Eigen::MatrixXd BC(nPts, 3), pt_positions(nPts, 3);
+      std::vector<std::vector<int>> F2V(F.rows(), std::vector<int>{});
+      for (int iP = 0; iP < nPts; iP++) {
+          Eigen::Vector3d pb = Eigen::Vector3d::Random().cwiseAbs();
+          pb /= pb.sum();
+          BC.row(iP) = pb;
+          F2V[f].push_back(iP);
+          pt_positions.row(iP) = bc_to_position(f, pb, VO, FO);
+      }
+      auto psOrigPoints = polyscope::registerPointCloud("original points", pt_positions);
+
+      int v = insert_ear_vertex(fs, t, F, G, l, A, v2fs, BC, F2V);
+      flip_to_delaunay(F, G, l, A, v2fs, BC, F2V);
+
       Eigen::MatrixXd V = VO;
       V.conservativeResize(V.rows()+1, 3);
       V.row(v) = x;

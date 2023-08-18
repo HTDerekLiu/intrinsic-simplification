@@ -108,11 +108,7 @@ bool trace_in_face_barycentric(
     return false;
 }
 
-Eigen::Matrix3d edge_barycentric_transition_matrix(
-                                                   int f_
-                                                   );
-
-void trace_geodesic(
+bool trace_geodesic(
                     int f_start,
                     const Eigen::Vector3d & b_start_,
                     const Eigen::Vector3d & v_start_,
@@ -156,10 +152,10 @@ void trace_geodesic(
 
         //== identify next face
         Vector2i fs_next {G(f_curr, 2 * s_curr), G(f_curr, 2 * s_curr + 1)};
-        if (fs_next == GHOST_FACE_SIDE) { // TODO: support barrier edges
-          f_end = f_curr;
-          cout << ">>>> hit boundary edge" << endl;
-          return;
+        if (fs_next == GHOST_FACE_SIDE) {
+            f_end = f_curr;
+            if (::TRACE_PRINT) cout << ">>>> hit boundary edge" << endl;
+            return false;
         }
 
         //== subtract off traced component of tangent vector
@@ -226,4 +222,5 @@ void trace_geodesic(
         hittable[s_curr] = false;
     }
     f_end = f_curr;
+    return true;
 }

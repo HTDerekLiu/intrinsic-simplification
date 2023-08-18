@@ -16,14 +16,15 @@
 #include "is_ear_vertex.h"
 #include "trace_geodesic.h"
 #include "insert_degree_three_vertex.h"
-#include "is_delaunay.h" // TODO: remove this
+#include "insert_ear_vertex.h"
 
 #include <queue>
 #include <array>
 #include <vector>
 #include <unordered_map>
 
-// find all vertices within a distance ball_radius of vertex iV in the edge graph of the given mesh
+// find all vertices within a distance ball_radius of vertex iV in the
+// edge graph of the given mesh
 std::unordered_map<int, double> vertex_dijkstra_ball(Eigen::MatrixXi & F,
                                                         Eigen::MatrixXi & G,
                                                         Eigen::MatrixXd & l,
@@ -34,12 +35,12 @@ std::unordered_map<int, double> vertex_dijkstra_ball(Eigen::MatrixXi & F,
     using namespace Eigen;
     using namespace std;
 
-    // Search state: incoming halfedges to each vertex, once discovered
+    // Search state: distances discovered so far
     unordered_map<int, double> shortest_dist;
 
     // Search state: visible neighbors eligible to expand to
-    using WeightedVertex = tuple<double, int>;
-    priority_queue<WeightedVertex, vector<WeightedVertex>, greater<WeightedVertex>> to_process;
+    using w_vertex = tuple<double, int>; // weighted vertex
+    priority_queue<w_vertex, vector<w_vertex>, greater<w_vertex>> to_process;
 
     // Add initial source
     to_process.emplace(0., iV);
@@ -54,17 +55,17 @@ std::unordered_map<int, double> vertex_dijkstra_ball(Eigen::MatrixXi & F,
         // skips stale entries
         if (shortest_dist.find(iV) != shortest_dist.end()) continue;
 
-        shortest_dist[curr_vert] = curr_dist;
+        shortest_dist[curr_vert] = curr_dist; // lock in distance
 
-        // Mark everything in the 1-ring as possibly non-Delaunay and possibly violating
-        // the circumradius constraint
+        // propagate distance to all of its neighbors
         vector<Vector2i> outgoing_face_sides;
         vertex_one_ring_face_sides(G, v2fs, curr_vert, outgoing_face_sides);
         for (Vector2i fs : outgoing_face_sides) {
             double target_dist = curr_dist + l(fs(0), fs(1));
             int    target_vert = F(fs(0), (fs(1) + 1) %3);
+            if (target_dist <= ball_radius
+                && shortest_dist.find(target_vert) == shortest_dist.end()) {
 
-            if (target_dist <= ball_radius && shortest_dist.find(target_vert) == shortest_dist.end()) {
                 to_process.emplace(target_dist, target_vert);
             }
         }
@@ -103,7 +104,6 @@ void delaunay_refine(
     // borrowed from geometry central
     // Relationship between angles and circumradius-to-edge
     double angle_threshold_radians = angle_threshold_degrees * M_PI / 180.;
-    double circumradius_edge_ratio_threshold = 1.0 / (2.0 * sin(angle_threshold_radians));
 
     // store whether an edge is flippable
     // TODO: mark whether boundary edges are flippable, and update following
@@ -183,7 +183,8 @@ void delaunay_refine(
 
         bool needs_refinement_length = fc > circumradius_threshold;
 
-        // Explicit check allows us to skip degree one vertices (can't make those angles smaller!)
+        // Explicit check allows us to skip degree one vertices
+        // (can't make those angles smaller!)
         bool needs_refinement_angle = false;
         for (size_t iS = 0; iS < 3; iS++) {
             Vector2i fs{iF, iS};
@@ -207,7 +208,8 @@ void delaunay_refine(
         return needs_refinement_length || needs_refinement_angle;
     };
 
-    // Manages a check at the bottom to avoid infinite-looping when numerical baddness happens
+    // Manages a check at the bottom to avoid infinite-looping when
+    // numerical baddness happens
     int recheck_count = 0;
     const int MAX_RECHECK_COUNT = 5;
 
@@ -215,7 +217,8 @@ void delaunay_refine(
     size_t n_flips = 0;
     size_t n_insertions = 0;
 
-    // Initialize queue of (possibly) non-delaunay edges by pushing all edges onto the queue
+    // Initialize queue of (possibly) non-delaunay edges by pushing all
+    // edges onto the queue
     queue<Vector2i> delaunay_check_queue;
     MatrixXb in_delaunay_queue(F.rows(), 3);
     in_delaunay_queue.setConstant(true);
@@ -229,11 +232,12 @@ void delaunay_refine(
     // check if fs or its twin is in delaunay queue
     auto fs_in_delaunay_queue = [&](Vector2i fs) -> bool {
         Vector2i fsT = twin(fs);
-        return in_delaunay_queue(fs(0), fs(1)) || (fsT != GHOST_FACE_SIDE && in_delaunay_queue(fsT(0), fsT(1)));
+        return in_delaunay_queue(fs(0), fs(1))
+          || (fsT != GHOST_FACE_SIDE && in_delaunay_queue(fsT(0), fsT(1)));
     };
 
-    // Return a weight to use for sorting PQ. Usually sorts by biggest area, but also puts faces
-    // on boundary first with weight inf
+    // Return a weight to use for sorting PQ. Usually sorts by biggest area,
+    // but also puts faces on the boundary first with weight inf
     auto area_weight = [&](int iF) -> double {
       for (size_t iS = 0; iS < 3; iS++) {
           if (is_fixed(iF, iS)) return numeric_limits<double>::infinity();
@@ -241,13 +245,17 @@ void delaunay_refine(
       return face_area(iF);
     };
 
-    // Define a queue of (possibly) circumradius-violating faces, processing the largest faces
-    // first (good heuristic)
-    typedef tuple<double, double, int> AreaFace;
-    priority_queue<AreaFace, vector<AreaFace>, less<AreaFace>> circumradius_check_queue;
+    // Define a queue of (possibly) circumradius-violating faces, processing the
+    // largest faces first (good heuristic)
+    typedef tuple<double, double, int> a_face;
+    priority_queue<a_face, vector<a_face>, less<a_face>> circumradius_check_queue;
+
+    auto enqueue_face_circumradius = [&](int iF) {
+        circumradius_check_queue.push(make_tuple(area_weight(iF), face_area(iF), iF));
+    };
 
     // Function to check the neighbors of an edge for further processing after a flip.
-    // TODO: somehow check neighbors after flipping to degree 3
+    // TODO: somehow check neighbors after flipping to degree 3 for vertex removal
     auto check_neighbors_after_flip = [&](Vector2i fs) {
         // cout << "  flipped face side " << fs << endl;
         n_flips++;
@@ -255,9 +263,7 @@ void delaunay_refine(
         // Add neighboring faces, which might violate circumradius constraint
         array<int, 2> neighboring_faces{fs(0), twin(fs)(0)};
         for (int nF : neighboring_faces) {
-            if (needs_refinement(nF)) {
-                circumradius_check_queue.push(make_tuple(area_weight(nF), face_area(nF), nF));
-            }
+            if (needs_refinement(nF)) enqueue_face_circumradius(nF);
         }
 
         // Add neighbors to delaunay queue, as they may need flipping now
@@ -282,7 +288,8 @@ void delaunay_refine(
             Vector2i fs = delaunay_check_queue.front();
             delaunay_check_queue.pop();
             // if (is_dead(fs(0))) continue; // TODO: do we need this?
-            if (!in_delaunay_queue(fs(0), fs(1))) throw runtime_error("popped face side which is not in queue");
+            if (!in_delaunay_queue(fs(0), fs(1)))
+                throw runtime_error("popped face side which is not in queue");
             in_delaunay_queue(fs(0), fs(1)) = false;
 
             // flip if flippable and not delaunay
@@ -299,9 +306,7 @@ void delaunay_refine(
     flip_to_delaunay_from_queue();
 
     for (size_t iF = 0; iF < F.rows(); iF++) {
-      if (needs_refinement(iF)) {
-        circumradius_check_queue.push(make_tuple(area_weight(iF), face_area(iF), iF));
-      }
+        if (needs_refinement(iF)) enqueue_face_circumradius(iF);
     }
 
     auto remove_inserted_vertex = [&](int v) -> int {
@@ -325,21 +330,24 @@ void delaunay_refine(
         double ball_radius = max(l(fs1(0), fs1(1)), l(fs2(0), fs2(1)));
         size_t new_v = F(fs1(0), fs1(1));
 
-        // Flip to Delaunay, to ensure that the Dijkstra search below actually has a stretch factor of 2
+        // Flip to Delaunay, to ensure that the Dijkstra search below actually
+        // has a stretch factor of 2
         flip_to_delaunay_from_queue();
 
         // Find all vertices within range.
-        // Most properly, this should probably be a polyhedral geodesic ball search, but that
-        // creates a dependence on polyhedral shortest paths which is bad for performance and
-        // robustness.
+        // Most properly, this should probably be a polyhedral geodesic ball search,
+        // but that creates a dependence on polyhedral shortest paths which is bad
+        // for performance and robustness
         //
-        // Fortunately, on a Delaunay triangulation, the Dijkstra distance is at most 2x the
-        // geodesic distance (see Intrinsic Triangulations Course, the underlying reference is
-        // Ge Xia 2013. "The Stretch Factor of the Delaunay Triangulation Is Less than 1.998").
-        // So instead, we delete all previously-inserted vertices within 2x the Dikstra
-        // radius instead. This may delete some extra verts, but that does not effect convergence.
-        unordered_map<int, double> nearby_verts = vertex_dijkstra_ball(F, G, l, v2fs, new_v,
-                                                                       2. * ball_radius);
+        // Fortunately, on a Delaunay triangulation, the Dijkstra distance is at
+        // most 2x the geodesic distance (see Intrinsic Triangulations Course, the
+        // underlying reference is Ge Xia 2013. "The Stretch Factor of the Delaunay
+        // Triangulation Is Less than 1.998").
+        // So instead, we delete all previously-inserted vertices within 2x the
+        // Dijkstra radius instead. This may delete some extra verts, but that does
+        // not affect convergence.
+        unordered_map<int, double> nearby_verts
+          = vertex_dijkstra_ball(F, G, l, v2fs, new_v, 2. * ball_radius);
 
         // remove inserted vertices
         for (auto p : nearby_verts) {
@@ -357,16 +365,16 @@ void delaunay_refine(
                     }
 
                     // Add face for circumcircle check
-                    if (needs_refinement(iF)) {
-                        circumradius_check_queue.push(make_tuple(area_weight(iF), face_area(iF), iF));
-                    }
+                    if (needs_refinement(iF))
+                        enqueue_face_circumradius(iF);
                 }
             }
         }
     };
 
     // Insert the a vertex located at the intrinsic circumcenter of the input face.
-    // Mesh must be Delaunay. Returns the index of the inserted vertex (or -1 in case of error)
+    // Mesh must be Delaunay. Returns the index of the inserted vertex (or -1 in
+    // case of error)
     auto insert_circumcenter = [&](int iF) -> int {
         double a = l(iF, 1);
         double b = l(iF, 2);
@@ -374,22 +382,43 @@ void delaunay_refine(
         double a2 = a * a;
         double b2 = b * b;
         double c2 = c * c;
-        Vector3d circumcenter_loc = {a2 * (b2 + c2 - a2), b2 * (c2 + a2 - b2), c2 * (a2 + b2 - c2)};
+        Vector3d circumcenter_loc{a2 * (b2 + c2 - a2),
+                                  b2 * (c2 + a2 - b2),
+                                  c2 * (a2 + b2 - c2)};
         circumcenter_loc /= circumcenter_loc.sum();
 
         // Trace from the barycenter (have to trace from somewhere)
         Vector3d barycenter = Vector3d::Constant(1. / 3.);
         Vector3d vec_to_circumcenter = circumcenter_loc - barycenter;
 
-        // === Trace the ray to find the location of the new point on the intrinsic meshes
+        // === Trace the ray to find the location of the new point
 
-        // Data we need from the intrinsic trace
-        int f_circumcenter; Vector3d b_circircumcenter;
-        trace_geodesic(iF, barycenter, vec_to_circumcenter, F, G, l, f_circumcenter, b_circircumcenter);
+        // face and barycentric coordinates for circumcenter
+        int f_c; Vector3d b_c;
+        bool end_in_face = trace_geodesic(iF, barycenter, vec_to_circumcenter, F, G,
+                                          l, f_c, b_c);
 
+        if (end_in_face) {
+            // ===  Add the new vertex
+            return insert_degree_three_vertex(f_c, b_c, F, G, l, A, v2fs, BC, F2V);
+        } else {
+            // If the circumcenter is blocked by an edge, insert the midpoint of
+            // that edge instead (which is needed for Chew's 2nd algo).
+
+            // identify hit edge
+            int iS = (is_fixed(f_c, 0) && b_c(2) < 1e-8) ? 0
+                   : (is_fixed(f_c, 1) && b_c(0) < 1e-8) ? 1
+                   : (is_fixed(f_c, 2) && b_c(1) < 1e-8) ? 2
+                   : -1;
+
+            if (iS < 0) {
+                throw runtime_error("geodesic trace terminated at non-fixed edge?");
+            }
+
+            return insert_ear_vertex({f_c, iS}, 0.5,
+                                      F, G, l, A, v2fs, BC, F2V);
+        }
         /* TODO
-        // If the circumcenter is blocked by an edge, insert the midpoint of that edge instead
-        // (which happens to be just want is needed for Chew's 2nd algo).
         if (newPositionOnIntrinsic.type == SurfacePointType::Edge) {
         newPositionOnIntrinsic.tEdge = 0.5;
         }
@@ -398,8 +427,6 @@ void delaunay_refine(
         // cout << " ... inserting vertex in face " << f_circumcenter << " at position "
         //      << b_circircumcenter.transpose() << endl;
 
-        // === Phase 3: Add the new vertex
-        return insert_degree_three_vertex(f_circumcenter, b_circircumcenter, F, G, l, A, v2fs, BC, F2V);
     };
 
     // === Outer iteration: flip and insert until we have a mesh that satisfies both angle
