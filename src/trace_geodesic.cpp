@@ -48,7 +48,8 @@ namespace {
 //    s_end   : the index of the side which the ray hits first
 //    t_ray   : the time along the ray when the ray hits side s_end
 //    t_cross : the time along side s_end when it intersects the ray
-//    b_end   : the location of this intersection within face f_start in barycentric coordinates
+//    b_end   : the location of this intersection within face f_start in
+//              barycentric coordinates
 bool trace_in_face_barycentric(
                                int iF,
                                const Eigen::Vector3d& b_start,
@@ -78,7 +79,8 @@ bool trace_in_face_barycentric(
         return true;
     }
 
-    // The vector did not end in this triangle. Pick an appropriate point along some edge
+    // The vector did not end in this triangle. Pick an appropriate point along
+    // some edge
     t_ray = numeric_limits<double>::infinity();
     s_end = -1;
     for (int iS = 0; iS < 3; iS++) {
@@ -94,11 +96,13 @@ bool trace_in_face_barycentric(
         }
     }
 
-    t_ray = clamp(t_ray, TRACE_EPS_LOOSE, 1. - ::TRACE_EPS_LOOSE); // clamp to a sane range
+    // clamp to a sane range
+    t_ray = clamp(t_ray, TRACE_EPS_LOOSE, 1. - ::TRACE_EPS_LOOSE);
 
     if (s_end < 0) {
         cout << "v: " << v.transpose() << endl;
-        cout << "hittable: " << boolalpha << edge_is_hittable[0] << ", " << edge_is_hittable[1] << ", "<< edge_is_hittable[2] << endl;
+        cout << "hittable: " << boolalpha << edge_is_hittable[0] << ", "
+             << edge_is_hittable[1] << ", "<< edge_is_hittable[2] << endl;
         throw runtime_error("trace_in_face_barycentric: no edge intersection found");
     }
 
@@ -124,8 +128,9 @@ bool trace_geodesic(
     using namespace global_variables;
 
     if (::TRACE_PRINT) {
-      cout << ">>> Trace query (barycentric) from " << f_start << " (" << F.row(f_start) <<  ") "
-              << b_start_.transpose() << " vec = " << v_start_.transpose() << endl;
+      cout << ">>> Trace query (barycentric) from " << f_start << " ("
+           << F.row(f_start) <<  ") " << b_start_.transpose()
+           << " vec = " << v_start_.transpose() << endl;
     }
 
     // Early-out if zero
@@ -134,8 +139,8 @@ bool trace_geodesic(
         b_end = b_start_;
     }
 
-    // Make sure the input is sane, i.e. that b_start's components are in the unit interval
-    // and sum to 1, and v_start's components sum to zero
+    // Make sure the input is sane, i.e. that b_start's components are in the unit
+    // interval and sum to 1, and v_start's components sum to zero
     Vector3d b_start = clamp(b_start_, 0, 1);
     b_start /= b_start.sum();
     Vector3d v_start = v_start_ - Vector3d::Constant(v_start_.sum() / 3);
@@ -162,20 +167,21 @@ bool trace_geodesic(
         v_curr = (1 - t_ray) * v_curr;
 
         //== update tangent vector
-        // first, build map between barycentric coordinate spaces of neighboring triangles
+        // first, build map between barycentric coordinate spaces of
+        // neighboring triangles
         MatrixXd diamond_layout; MatrixXi ignore;
         // {f, s} goes from diamond_layout.row(0) to diamond_layout.row(1)
         // face f contains diamond_layout.row(2) and its twin contains the final row
         flatten_diamond_mesh(G, l, {f_curr, s_curr}, diamond_layout, ignore);
 
         Matrix3d V_curr, V_twin; // build position matrices in homogeneous coordinates
-        V_curr.col(0) = diamond_layout.row(0);
-        V_curr.col(1) = diamond_layout.row(1);
-        V_curr.col(2) = diamond_layout.row(2);
+        V_curr.block<2, 1>(0, 0) = diamond_layout.row(0);
+        V_curr.block<2, 1>(0, 1) = diamond_layout.row(1);
+        V_curr.block<2, 1>(0, 2) = diamond_layout.row(2);
         V_curr.row(2) = Vector3d::Ones();
-        V_twin.col(0) = diamond_layout.row(1);
-        V_twin.col(1) = diamond_layout.row(0);
-        V_twin.col(2) = diamond_layout.row(3);
+        V_twin.block<2, 1>(0, 0) = diamond_layout.row(1);
+        V_twin.block<2, 1>(0, 1) = diamond_layout.row(0);
+        V_twin.block<2, 1>(0, 2) = diamond_layout.row(3);
         V_twin.row(2) = Vector3d::Ones();
 
 
@@ -183,23 +189,26 @@ bool trace_geodesic(
             cout << "  converting vector: " << endl;
             cout << "  v (initial) = " << v_curr.transpose() << endl;
         }
-        // V_twin^{-1}.V_twin maps from face f to its twin, ordering barycentric coordinates
-        // so that side s comes first
-        Vector3d position_space = V_curr * permute_barycentric_from_canonical(v_curr, s_curr);
+        // V_twin^{-1}.V_twin maps from face f to its twin, ordering barycentric
+        // coordinates so that side s comes first
+        Vector3d position_space = V_curr * permute_barycentric_from_canonical(v_curr,
+                                                                              s_curr);
         Vector3d v_new = V_twin.colPivHouseholderQr().solve(position_space);
         // project to ensure the vector is in the right direction
         v_new(2) = fmax(v_new(2), ::TRACE_EPS_TIGHT);
-        // Manual displacement projection to sum to 0 to keep it pointing in the right direction
+        // Manual displacement projection to sum to 0 to keep it pointing in the
+        // right direction
         double diff = -v_new.sum();
         if (diff > 0) {
-          v_new(2) += diff;
+            v_new(2) += diff;
         } else {
-          v_new += Vector3d{diff, diff, diff} / 3.;
+            v_new += Vector3d{diff, diff, diff} / 3.;
         }
         // reorder barycentric coordinates
         v_new = permute_barycentric_to_canonical(v_new, fs_next(1));
         if (::TRACE_PRINT) {
-            cout << "  v (cartesian norm) = " << position_space.norm() * l(f_curr, s_curr) << endl;
+            cout << "  v (cartesian norm) = "
+                 << position_space.norm() * l(f_curr, s_curr) << endl;
             cout << "  v (transformed) = " << v_new.transpose() << endl;
             if (v_new.squaredNorm() > 1e10) {
                 cout << "V_curr: " << endl << V_curr << endl;

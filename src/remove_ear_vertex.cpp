@@ -1,6 +1,6 @@
 #include "remove_ear_vertex.h"
 
-void remove_ear_vertex(
+int remove_ear_vertex(
     const int & v,
     Eigen::MatrixXi & F,
     Eigen::MatrixXi & G,
@@ -137,6 +137,5 @@ void remove_ear_vertex(
     G.row(f) << GHOST_INDEX, GHOST_INDEX, GHOST_INDEX, GHOST_INDEX, GHOST_INDEX, GHOST_INDEX;
     A.row(f) << DOUBLE_INF, DOUBLE_INF, DOUBLE_INF;
 
-    // local flip to delaunay
-    flip_to_delaunay_local(f_twin, F,G,l,A,v2fs,BC,F2V);
+    return f_twin;
 }

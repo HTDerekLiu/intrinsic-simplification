@@ -33,7 +33,7 @@ static void relable(
     }
 }
 
-void remove_degree_three_vertex(
+int remove_degree_three_vertex(
     const int & v,
     Eigen::MatrixXi & F,
     Eigen::MatrixXi & G,
@@ -234,6 +234,5 @@ void remove_degree_three_vertex(
         v2fs.row(vv) << fs_min(0), fs_min(1);
     }
 
-    // local flip to delaunay
-    flip_to_delaunay_local(f_new, F,G,l,A,v2fs,BC,F2V);
+    return f_new;
 }

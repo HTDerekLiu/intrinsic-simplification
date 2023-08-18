@@ -47,7 +47,7 @@ int main(int argc, char* argv[]) {
     args::ValueFlag<double> weight_arg(parser, "area_weight",
                                       "Influence of vertex area on coarsening. 0: none, 1: pure area weighting. (default='0')", {'w',"area_weight"});
     args::ValueFlag<int> texture_width_arg(parser, "texture_width",
-                                           "texture width. Set to -1 to disable texture visualization (default='2048')", {'w',"texture_width"});
+                                           "texture width. Set to -1 to disable texture visualization (default='2048')", {'u',"texture_width"});
     args::ValueFlag<std::string> texture_path_arg(parser, "texture_path",
                                                   "File to save texture to. Texture will be saved as a png. If not set, the texture is not saved", {'t',"texture_path"});
     args::ValueFlag<std::string> prolongation_matrix_path_arg(parser, "prolongation_matrix_path",
@@ -98,11 +98,18 @@ int main(int argc, char* argv[]) {
         n_coarse_vertices = VO.rows();
     }
 
-    int tex_size = tex_width*tex_width;
+    bool using_texture = tex_width > 0;
+
+    int tex_size = (using_texture) ? tex_width * tex_width : 0;
     MatrixXd bary_coords;
     VectorXi bary_faces;
     Matrix<bool, Dynamic, 1> hit_mask;
-    if (tex_width > 0) query_texture_barycentric(UV, UF, tex_width, bary_faces, bary_coords, hit_mask);
+    if (using_texture) {
+        query_texture_barycentric(UV, UF, tex_width, bary_faces, bary_coords, hit_mask);
+    } else {
+        std::cout << "Skipping texture generation since width was set to "
+                  << tex_width << std::endl;
+    }
 
     MatrixXi G, GO;        // glue map
     MatrixXd l, lO;        // edge lengths
@@ -271,6 +278,7 @@ int main(int argc, char* argv[]) {
         }
 
         auto snapshot = [&](std::string name) -> void {
+            if (!using_texture) return;
             std::vector<unsigned char> texture;
             if (tex_width > 0) bake_texture(texture, F, F2V, hit_mask, nV);
 

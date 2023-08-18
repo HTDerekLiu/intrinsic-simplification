@@ -4,7 +4,7 @@
 #include <Eigen/Core>
 #include <Eigen/Dense>
 #include <iostream>
-#include <math.h> 
+#include <math.h>
 #include <set>
 #include <stdexcept>
 
@@ -27,32 +27,34 @@
 
     V: |V|x3 array of vertex locations
     F: |F|x3 array of face list
-    G: |F|x3x2 array of gluing map 
+    G: |F|x3x2 array of gluing map
     l: |F|x3 array of edge-lengths array
     A: |F|x3 array of signpost angles
     v2fs: |V|x2 array of face-sides
-    BC: |BC|x3 array of barycentric coordinates 
+    BC: |BC|x3 array of barycentric coordinates
     F2V: |F| length list of lists, where F2V[f] gives you indices in BC.
     T: |V|xch*3 array of tangent vectors
 
     Outputs
     All the variables are updated in-place
 
+    returns the index of the remaining face opposite the removed ear vertex (f_twin)
+
     Notation
-                 /  \      
-                /    \      
-               /      \    
-              /        \    
-             / fs_twin  \  
+                 /  \
+                /    \
+               /      \
+              /        \
+             / fs_twin  \
     -----v_left ----- v_right -------
-             \    fs    /   
-              \        /     
-               \      /       
-                \    /       
-                 \  /         
+             \    fs    /
+              \        /
+               \      /
+                \    /
+                 \  /
                   v
 */
-void remove_ear_vertex(
+int remove_ear_vertex(
     const int & v,
     Eigen::MatrixXi & F,
     Eigen::MatrixXi & G,

@@ -143,7 +143,7 @@ int insert_degree_three_vertex(
     G.conservativeResize(nF+2, 6);
     l.conservativeResize(nF+2, 3);
     A.conservativeResize(nF+2, 3);
-    v2fs.conservativeResize(nV+1, 3);
+    v2fs.conservativeResize(nV+1, 2);
     int v = nV; // new vertex index is nV
     // new face indices are nF and nF+1
 

@@ -35,7 +35,7 @@ int main(int argc, char* argv[]) {
   args::ValueFlag<double> weight_arg(parser, "area_weight",
                                      "Influence of vertex area on coarsening. 0: none, 1: pure area weighting. (default='0')", {'w',"area_weight"});
   args::ValueFlag<int> texture_width_arg(parser, "texture_width",
-                                     "texture width. (default='2048')", {'w',"texture_width"});
+                                     "texture width. (default='2048')", {'u',"texture_width"});
   args::ValueFlag<std::string> texture_path_arg(parser, "texture_path",
                                                 "File to save texture to. Texture will be saved as a png. If not set, the texture is not saved", {'t',"texture_path"});
   args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
@@ -56,6 +56,8 @@ int main(int argc, char* argv[]) {
   int n_coarse_vertices = n_coarse_vertices_arg ? args::get(n_coarse_vertices_arg) : 500;
   double weight = weight_arg ? args::get(weight_arg) : 0;
   int tex_width = texture_width_arg ? args::get(texture_width_arg) : 2048;
+
+  bool using_texture = tex_width > 0;
 
   // load mesh
   MatrixXd VO, UV, NV;
@@ -79,11 +81,12 @@ int main(int argc, char* argv[]) {
     n_coarse_vertices = VO.rows();
   }
 
-  int tex_size = tex_width*tex_width;
+  int tex_size = (using_texture) ? tex_width * tex_width : 0;
   MatrixXd bary_coords;
   VectorXi bary_faces;
   Matrix<bool, Dynamic, 1> hit_mask;
-  query_texture_barycentric(UV, UF, tex_width, bary_faces, bary_coords, hit_mask);
+  if (using_texture)
+      query_texture_barycentric(UV, UF, tex_width, bary_faces, bary_coords, hit_mask);
 
   MatrixXi G;    // glue map
   MatrixXd l;    // edge lengths
@@ -142,18 +145,21 @@ int main(int argc, char* argv[]) {
   auto psMesh  = polyscope::registerSurfaceMesh("input mesh", VO, FO);
   polyscope::registerSurfaceMesh("coarsened mesh (with wrong edge length)", V, F);
 
-  // convert parameterization to polyscope's desired input format
-  Eigen::Matrix<glm::vec2, Dynamic, 1> parameterization(3 * UF.rows());
-  for (int iF = 0; iF < UF.rows(); iF++) {
-    for (int iC = 0; iC < 3; iC++) {
-      parameterization(3 * iF + iC) = glm::vec2{UV(UF(iF, iC), 0), UV(UF(iF, iC), 1)};
-    }
+  if (using_texture) {
+      // convert parameterization to polyscope's desired input format
+      Eigen::Matrix<glm::vec2, Dynamic, 1> parameterization(3 * UF.rows());
+      for (int iF = 0; iF < UF.rows(); iF++) {
+        for (int iC = 0; iC < 3; iC++) {
+          parameterization(3 * iF + iC) = glm::vec2{UV(UF(iF, iC), 0), UV(UF(iF, iC), 1)};
+        }
+      }
+      auto q = psMesh->addParameterizationQuantity("xz", parameterization)
+                    ->setTexture(tex_width, tex_width, texture,
+                                 polyscope::TextureFormat::RGBA8);
+      q->setEnabled(true);
+      q->setStyle(polyscope::ParamVizStyle::TEXTURE);
+      q->setCheckerSize(1);
   }
-  auto q = psMesh->addParameterizationQuantity("xz", parameterization)
-                 ->setTexture(tex_width, tex_width, texture, polyscope::TextureFormat::RGBA8);
-  q->setEnabled(true);
-  q->setStyle(polyscope::ParamVizStyle::TEXTURE);
-  q->setCheckerSize(1);
 
   polyscope::view::lookAt(glm::vec3{1.5, 1.5, 3}, glm::vec3{0., 0., 0.});
   polyscope::show();

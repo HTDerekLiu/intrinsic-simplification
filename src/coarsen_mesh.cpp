@@ -155,16 +155,19 @@ void coarsen_mesh(
         if (v_type == 0) // interior
         {
             always_flip_to_degree_three(v,F,G,l,A,v2fs,BC,F2V);
-            remove_degree_three_vertex(v,F,G,l,A,v2fs,BC,F2V,T);
+            int f_new = remove_degree_three_vertex(v,F,G,l,A,v2fs,BC,F2V,T);
+            flip_to_delaunay_local(f_new, F,G,l,A,v2fs,BC,F2V);
         }
         else if (v_type == 1) // ear
         {
-            remove_ear_vertex(v,F,G,l,A,v2fs,BC,F2V,T);
+            int f_twin = remove_ear_vertex(v,F,G,l,A,v2fs,BC,F2V,T);
+            flip_to_delaunay_local(f_twin, F,G,l,A,v2fs,BC,F2V);
         }
         else if (v_type == 2) // regular boundary
         {
             always_flip_to_ear(v,F,G,l,A,v2fs,BC,F2V);
-            remove_ear_vertex(v,F,G,l,A,v2fs,BC,F2V,T);
+            int f_twin = remove_ear_vertex(v,F,G,l,A,v2fs,BC,F2V,T);
+            flip_to_delaunay_local(f_twin, F,G,l,A,v2fs,BC,F2V);
         }
         // after removal, count += 1
         num_removed += 1;

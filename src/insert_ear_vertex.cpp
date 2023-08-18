@@ -50,7 +50,7 @@ int insert_ear_vertex(
     G.conservativeResize(nF+1, 6);
     l.conservativeResize(nF+1, 3);
     A.conservativeResize(nF+1, 3);
-    v2fs.conservativeResize(nV+1, 3);
+    v2fs.conservativeResize(nV+1, 2);
     int v = nV; // new vertex index is nV
     int f = nF; // new face index is nF
 
