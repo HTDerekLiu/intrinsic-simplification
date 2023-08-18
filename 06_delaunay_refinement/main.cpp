@@ -32,6 +32,8 @@
 #include <delaunay_refine.h>
 #include <flip_to_delaunay.h>
 
+enum class RefinementTime {Before = 0, After, Both, Neither};
+
 int main(int argc, char* argv[]) {
     using namespace Eigen;
     using namespace std;
@@ -39,24 +41,42 @@ int main(int argc, char* argv[]) {
     using namespace std::chrono;
 
     // Configure the argument parser
-    args::ArgumentParser parser("Intrinsic Delaunay Refinement");
-    args::Positional<std::string> filename_arg(parser, "mesh",
-                                              "Mesh to be coarsened. (default='../../meshes/dragon_fat.obj')");
+    args::ArgumentParser parser("Intrinsic simplification + Delaunay refinement");
+    args::Positional<std::string> filename_arg(parser, "mesh", "Mesh to be coarsened."
+                                               " (default='../../meshes/dragon_fat.obj')");
     args::Positional<int> n_coarse_vertices_arg(parser, "n_coarse_vertices",
-                                                "Number of coarse vertices to leave. (default='500')");
-    args::ValueFlag<double> weight_arg(parser, "area_weight",
-                                      "Influence of vertex area on coarsening. 0: none, 1: pure area weighting. (default='0')", {'w',"area_weight"});
-    args::ValueFlag<int> texture_width_arg(parser, "texture_width",
-                                           "texture width. Set to -1 to disable texture visualization (default='2048')", {'u',"texture_width"});
-    args::ValueFlag<std::string> texture_path_arg(parser, "texture_path",
-                                                  "File to save texture to. Texture will be saved as a png. If not set, the texture is not saved", {'t',"texture_path"});
+                                                "Number of coarse vertices to leave."
+                                                " (default='500')");
+    args::ValueFlag<double> weight_arg(parser, "area_weight", "Influence of vertex area"
+                                       " on coarsening. 0: none, 1: pure area weighting."
+                                       " (default='0')", {'w',"area_weight"});
+    args::ValueFlag<std::string> refinement_time_arg(parser, "refinement_time", "Whether to"
+                                                     " perform intrinsic Delaunay refinement"
+                                                     " before simplification or after"
+                                                     " simplification. (Options: BEFORE, AFTER,"
+                                                     " BOTH, NEITHER; default=BEFORE)",
+                                                     {'r', "refinement_time"}
+                                                     );
+    args::ValueFlag<int> texture_width_arg(parser, "texture_width", "Texture width. Set to"
+                                           " -1 to disable texture visualization"
+                                           " (default='2048')", {'u',"texture_width"});
+    args::ValueFlag<std::string> texture_path_arg(parser, "texture_path", "File to save texture"
+                                                  " to. Texture will be saved as a png. If not"
+                                                  " set, the texture is not saved",
+                                                  {'t',"texture_path"});
     args::ValueFlag<std::string> prolongation_matrix_path_arg(parser, "prolongation_matrix_path",
-                                      "File to save vector prolongation matrix to. If not set, the prolongation matrix is not saved", {'p',"prolongation_path"});
+                                      "File to save vector prolongation matrix to. If not set,"
+                                      " the prolongation matrix is not saved",
+                                      {'p',"prolongation_path"});
     args::ValueFlag<std::string> laplace_matrix_path_arg(parser, "laplace_matrix_path",
-                                                              "File to save coarsened connection laplace matrix to. If not set, the laplace matrix is not saved", {'l',"laplace_path"});
+                                      "File to save coarsened connection laplace matrix to."
+                                      " If not set, the laplace matrix is not saved",
+                                      {'l',"laplace_path"});
     args::ValueFlag<std::string> mass_matrix_path_arg(parser, "mass_matrix_path",
-                                                        "File to save coarsened vector mass matrix to. If not set, the mass matrix is not saved", {'m',"mass_path"});
-    args::Flag no_viz_flag(parser, "no_viz", "Write requested output files without showing visualization", {'n', "no_viz"});
+                                     "File to save coarsened vector mass matrix to. If not set,"
+                                     " the mass matrix is not saved", {'m',"mass_path"});
+    args::Flag no_viz_flag(parser, "no_viz", "Write requested output files without showing"
+                           " visualization", {'n', "no_viz"});
     args::HelpFlag help(parser, "help", "Display this help menu", {'h', "help"});
 
     // Parse args
@@ -75,6 +95,24 @@ int main(int argc, char* argv[]) {
     int n_coarse_vertices = n_coarse_vertices_arg ? args::get(n_coarse_vertices_arg) : 500;
     double weight = weight_arg ? args::get(weight_arg) : 0;
     int tex_width = texture_width_arg ? args::get(texture_width_arg) : 2048;
+
+    RefinementTime refinement_time = RefinementTime::Before;
+    if (refinement_time_arg) {
+        std::string refinement_time_str = args::get(refinement_time_arg);
+        if (refinement_time_str == "BEFORE") {
+            refinement_time = RefinementTime::Before;
+        } else if (refinement_time_str == "AFTER") {
+            refinement_time = RefinementTime::After;
+        } else if (refinement_time_str == "BOTH") {
+            refinement_time = RefinementTime::Both;
+        } else if (refinement_time_str == "NEITHER") {
+            refinement_time = RefinementTime::Neither;
+        } else {
+            std::cout << "Error: unrecognized refinement time '" << refinement_time_str
+                      << "'" << std::endl;
+            exit(1);
+        }
+    }
 
     // load mesh
     MatrixXd VO, UV, NV;
