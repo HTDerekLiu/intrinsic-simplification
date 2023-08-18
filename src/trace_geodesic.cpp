@@ -116,7 +116,6 @@ bool trace_geodesic(
                     int f_start,
                     const Eigen::Vector3d & b_start_,
                     const Eigen::Vector3d & v_start_,
-                    const Eigen::MatrixXi & F, // TODO: delete
                     const Eigen::MatrixXi & G,
                     const Eigen::MatrixXd & l,
                     int & f_end,
@@ -128,9 +127,8 @@ bool trace_geodesic(
     using namespace global_variables;
 
     if (::TRACE_PRINT) {
-      cout << ">>> Trace query (barycentric) from " << f_start << " ("
-           << F.row(f_start) <<  ") " << b_start_.transpose()
-           << " vec = " << v_start_.transpose() << endl;
+      cout << ">>> Trace query (barycentric) from " << f_start << " "
+           << b_start_.transpose() << " vec = " << v_start_.transpose() << endl;
     }
 
     // Early-out if zero

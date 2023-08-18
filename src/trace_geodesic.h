@@ -24,7 +24,6 @@ bool trace_geodesic(
                     int f_start,
                     const Eigen::Vector3d & b_start,
                     const Eigen::Vector3d & v_start,
-                    const Eigen::MatrixXi & F, // TODO: only for debugging; delete
                     const Eigen::MatrixXi & G,
                     const Eigen::MatrixXd & l,
                     int & f_end,

@@ -153,7 +153,7 @@ int main(int argc, char* argv[]) {
           parameterization(3 * iF + iC) = glm::vec2{UV(UF(iF, iC), 0), UV(UF(iF, iC), 1)};
         }
       }
-      auto q = psMesh->addParameterizationQuantity("xz", parameterization)
+      auto q = psMesh->addParameterizationQuantity("intrinsic triangulation", parameterization)
                     ->setTexture(tex_width, tex_width, texture,
                                  polyscope::TextureFormat::RGBA8);
       q->setEnabled(true);

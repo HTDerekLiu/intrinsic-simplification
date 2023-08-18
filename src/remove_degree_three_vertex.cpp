@@ -1,11 +1,11 @@
 #include "remove_degree_three_vertex.h"
 
-static void relable(
-	const std::vector<Eigen::Vector2i> & boundary_fs,
+static void relabel(
+  const std::vector<Eigen::Vector2i> & boundary_fs,
     const int & f_new,
-	std::vector<Eigen::Vector2i> & boundary_fs_twin)
+  std::vector<Eigen::Vector2i> & boundary_fs_twin)
 {
-	using namespace std;
+  using namespace std;
     using namespace Eigen;
     assert(boundary_fs.size() == 3);
     assert(boundary_fs_twin.size() == 3);
@@ -16,17 +16,20 @@ static void relable(
     for (int ii=0; ii<3; ii++)
     {
         if (is_same_face_side(bfs0, boundary_fs_twin[ii])){
-            // cout << "relabel: "  << boundary_fs_twin[ii].transpose() << f_new << "  0" << endl;
+            // cout << "relabel: "  << boundary_fs_twin[ii].transpose()
+            //      << f_new << "  0" << endl;
             boundary_fs_twin[ii] << f_new, 0;
             continue;
         }
         else if (is_same_face_side(bfs1, boundary_fs_twin[ii])){
-            // cout << "relabel: "  << boundary_fs_twin[ii].transpose() << f_new << "  1" << endl;
+            // cout << "relabel: "  << boundary_fs_twin[ii].transpose()
+            //      << f_new << "  1" << endl;
             boundary_fs_twin[ii] << f_new, 1;
             continue;
         }
         else if (is_same_face_side(bfs2, boundary_fs_twin[ii])){
-            // cout << "relabel: "  << boundary_fs_twin[ii].transpose() << f_new << "  2" << endl;
+            // cout << "relabel: "  << boundary_fs_twin[ii].transpose()
+            //      << f_new << "  2" << endl;
             boundary_fs_twin[ii] << f_new, 2;
             continue;
         }
@@ -42,7 +45,8 @@ int remove_degree_three_vertex(
     Eigen::MatrixXi & v2fs,
     Eigen::MatrixXd & BC,
     std::vector<std::vector<int>> & F2V,
-    Eigen::MatrixXd & T)
+    Eigen::MatrixXd & T,
+    bool set_vertex_bc)
 {
     using namespace std;
     using namespace Eigen;
@@ -79,7 +83,7 @@ int remove_degree_three_vertex(
 
     // compute the barycentric coodinate of the degree three vertex
     Vector3i bv;
-    Vector3d bc; 
+    Vector3d bc;
     {
         double area_sum = 0.0;
         double area;
@@ -100,23 +104,25 @@ int remove_degree_three_vertex(
                 area = 0.0;
             else
                 area = sqrt(s * (s - e0) * (s - e1) * (s - e2));
-            
-            // keep track area sum 
+
+            // keep track area sum
             area_sum += area;
 
             // save barycentric info
             bc(ii) = area;
-            Vector2i fs_opp = twin(G,next(next(twin(G,next(next(fs)))))); // the opposite vertex of this face 
+            // the opposite vertex of this face
+            Vector2i fs_opp = twin(G,next(next(twin(G,next(next(fs))))));
             int _, vj;
             get_face_side_vertices(F, fs_opp, _, vj);
             bv(ii) = vj;
         }
-        
+
         if (area_sum > 0)
             bc = bc / area_sum; // if triangle not degenerated, normalize bc
         else{
-            // if triangle is degenerated, assign the barycentric to one of the edges (default edge 01)
-            area_sum = 0; 
+            // if triangle is degenerated, assign the barycentric to one of
+            // the edges (default edge 01)
+            area_sum = 0;
             Vector2i fs0 = one_ring_fs[0];
             Vector2i fs1 = one_ring_fs[1];
             Vector2i fs2 = one_ring_fs[2];
@@ -146,15 +152,15 @@ int remove_degree_three_vertex(
         roll1d(bv_unshift, shift, bv);
 
         // put back to BC
-        BC.row(v) << bc.transpose();        
+        if (set_vertex_bc) BC.row(v) << bc.transpose();
     }
 
-    // update the barycentric coordinates of all existing barycentric coordinates on the removed faces
+    // update the barycentric coordinates of all existing barycentric coordinates
+    // on the removed faces
     vector<int> to_append_v_to_f;
-    to_append_v_to_f.emplace_back(v);
-    for (int i=0; i<faces.size(); i++)
+    if (set_vertex_bc) to_append_v_to_f.emplace_back(v);
+    for (int f : faces)
     {
-        int f = faces[i];
         for (int j=0; j<F2V[f].size(); j++)
         {
             int b = F2V[f][j];
@@ -176,7 +182,7 @@ int remove_degree_three_vertex(
             }
             BC.row(b) = bc_b / bc_b.sum();
             to_append_v_to_f.emplace_back(b);
-        } 
+        }
         F2V[f].clear();
     }
     // cout << "done bary update\n";
@@ -186,34 +192,34 @@ int remove_degree_three_vertex(
     // cout << "done finding new fIdx: " << f_new << "\n";
 
     // remove deleted face info
-    for (int ii=0; ii<faces.size(); ii++)
+    for (int f : faces)
     {
-        int f = faces[ii];
         F.row(f) << GHOST_INDEX, GHOST_INDEX, GHOST_INDEX;
         l.row(f) << -1, -1, -1;
-        G.row(f) << GHOST_INDEX, GHOST_INDEX, GHOST_INDEX, GHOST_INDEX, GHOST_INDEX, GHOST_INDEX;
+        G.row(f) << GHOST_INDEX, GHOST_INDEX, GHOST_INDEX,
+                    GHOST_INDEX, GHOST_INDEX, GHOST_INDEX;
         A.row(f) << DOUBLE_INF, DOUBLE_INF, DOUBLE_INF;
     }
     v2fs.row(v) << GHOST_INDEX, GHOST_INDEX;
     // cout << "done remove info\n";
-    
+
     // add new face
     F.row(f_new) << vertices[0], vertices[1], vertices[2];
 
     // relabel boundary twin (so that self edges can be handled properly)
-    relable(boundary_fs, f_new, boundary_fs_twin);
+    relabel(boundary_fs, f_new, boundary_fs_twin);
 
     // assign a barycentric coordinate the new face
     F2V[f_new] = to_append_v_to_f;
 
-    // update angylar coordinates
+    // update angular coordinates
     for (int ii=0; ii<3; ii++)
         A(f_new, ii) = angles_boundary_fs[ii];
 
     // glue the boundary_fs_twins with new face sides
     for (int ii=0; ii<3; ii++)
     {
-        Vector2i fs; 
+        Vector2i fs;
         fs << f_new, ii;
         glue_face_sides(boundary_fs_twin[ii], fs, G);
     }
@@ -226,7 +232,7 @@ int remove_degree_three_vertex(
     // update v2fs so that v2fs[v] returns the fs with smallest angular coordinate
     for (int ii=0; ii<3; ii++)
     {
-        Vector2i fs; 
+        Vector2i fs;
         fs << f_new, ii;
         Vector2i fs_min = get_smallest_angular_coordinate(G, A, fs);
 

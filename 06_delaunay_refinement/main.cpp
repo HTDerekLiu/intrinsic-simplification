@@ -160,234 +160,247 @@ int main(int argc, char* argv[]) {
     A = AO;
     v2fs = vO2fsO;
 
+    // check if face has been deleted
+    auto is_dead_face = [&](int iF) -> bool { return F(iF, 0) == GHOST_INDEX; };
+
     // Check if mesh is connected
     VectorXi v_ids, f_ids;
     int n_components;
     connected_components(FO, G, n_components, v_ids, f_ids);
     if (n_components != 1) {
-        std::cout << "WARNING: input mesh has " << n_components << " connected components. Simplification may behave unexpectedly when the input mesh is not connected." << std::endl;
-    }
-
-
-    // test trace_geodesic
-    if (false) {
-        int f_end, f_start = 3609; // spot.obj
-        Vector3d b_end, b_start = Vector3d{1,1,1}/3;
-        std::vector<std::pair<Vector2i, double>> path;
-        trace_geodesic(f_start, b_start, 40 * Vector3d{1, 0, -1}, FO, GO, lO, f_end, b_end, &path);
-
-        MatrixXd extrinsic_path(path.size() + 2, 3);
-        extrinsic_path.row(0) = VO.row(FO(f_start, 0)) * b_start(0)
-                              + VO.row(FO(f_start, 1)) * b_start(1)
-                              + VO.row(FO(f_start, 2)) * b_start(2);
-        for (size_t iP = 0; iP < path.size(); iP++) {
-            int iFO = path[iP].first(0);
-            int iS = path[iP].first(1);
-            double t = path[iP].second;
-            extrinsic_path.row(iP+1) = VO.row(FO(iFO, iS)) * (1-t) + VO.row(FO(iFO, (iS+1)%3)) * t;
-        }
-
-        extrinsic_path.row(path.size() + 1) = VO.row(FO(f_end, 0)) * b_end(0)
-                                            + VO.row(FO(f_end, 1)) * b_end(1)
-                                            + VO.row(FO(f_end, 2)) * b_end(2);
-
-        polyscope::init();
-        auto psInput = polyscope::registerSurfaceMesh("input mesh", VO, FO);
-        auto psGeodesic = polyscope::registerCurveNetworkLine("geodesic", extrinsic_path);
-        polyscope::show();
+        std::cout << "WARNING: input mesh has " << n_components << " connected components."
+          " Simplification may behave unexpectedly when the input mesh is not connected."
+                  << std::endl;
     }
 
     // test insert_degree_three_vertex
     if (false) {
-      auto bc_to_position = [](int f, const Eigen::Vector3d & bc,
-                               const Eigen::MatrixXd & V, const Eigen::MatrixXi & F) -> Eigen::Vector3d {
-          return bc(0) * V.row(F(f, 0)) + bc(1) * V.row(F(f, 1)) + bc(2) * V.row(F(f, 2));
-      };
-
-      polyscope::init();
-      auto psInput = polyscope::registerSurfaceMesh("input mesh", VO, FO);
-      int f = 3609; // spot.obj
-      std::cout << "Face vertices: " << F.row(f) << std::endl;
-      Eigen::Vector3d b{0.1, 0.3, 0.6};
-      Eigen::Vector3d x = bc_to_position(f, b, VO, FO);
-      auto psNewPoint = polyscope::registerPointCloud("inserted point", x.transpose());
-
-      int nPts = 25;
-      Eigen::MatrixXd BC(nPts, 3), pt_positions(nPts, 3);
-      std::vector<std::vector<int>> F2V(F.rows(), std::vector<int>{});
-      for (int iP = 0; iP < nPts; iP++) {
-          Eigen::Vector3d pb = Eigen::Vector3d::Random().cwiseAbs();
-          pb /= pb.sum();
-          BC.row(iP) = pb;
-          F2V[f].push_back(iP);
-          pt_positions.row(iP) = bc_to_position(f, pb, VO, FO);
-      }
-      auto psOrigPoints = polyscope::registerPointCloud("original points", pt_positions);
-
-      int v = insert_degree_three_vertex(f, b, F, G, l, A, v2fs, BC, F2V);
-      Eigen::MatrixXd V = VO;
-      V.conservativeResize(V.rows()+1, 3);
-      V.row(v) = x;
-
-      auto psSubdivided = polyscope::registerSurfaceMesh("subdivided mesh", V, F);
-      Eigen::MatrixXd subdivided_pt_positions(nPts, 3);
-      for (int f = 0; f < F.rows(); f++) {
-          for (int iP : F2V[f]) {
-            subdivided_pt_positions.row(iP) = bc_to_position(f, BC.row(iP), V, F);
-          }
-      }
-      auto psSubddividedPoints = polyscope::registerPointCloud("subdivided points", subdivided_pt_positions);
-
-      polyscope::show();
-    }
-
-    // test insert_ear_vertex
-    if (false) {
-      auto bc_to_position = [](int f, const Eigen::Vector3d & bc,
-                               const Eigen::MatrixXd & V, const Eigen::MatrixXi & F) -> Eigen::Vector3d {
-          return bc(0) * V.row(F(f, 0)) + bc(1) * V.row(F(f, 1)) + bc(2) * V.row(F(f, 2));
-      };
-
-      polyscope::init();
-      auto psInput = polyscope::registerSurfaceMesh("input mesh", VO, FO);
-
-      int f = 455; // cow-head.obj
-      int s = 0;
-      Eigen::Vector2i fs{f, s};
-      double t = 0.25;
-      Eigen::Vector3d b{1-t, t, 0};
-
-      std::cout << "Face vertices: " << F.row(f) << std::endl;
-
-      Eigen::Vector3d x = bc_to_position(f, b, VO, FO);
-      auto psNewPoint = polyscope::registerPointCloud("inserted point", x.transpose());
-
-      int nPts = 25;
-      Eigen::MatrixXd BC(nPts, 3), pt_positions(nPts, 3);
-      std::vector<std::vector<int>> F2V(F.rows(), std::vector<int>{});
-      for (int iP = 0; iP < nPts; iP++) {
-          Eigen::Vector3d pb = Eigen::Vector3d::Random().cwiseAbs();
-          pb /= pb.sum();
-          BC.row(iP) = pb;
-          F2V[f].push_back(iP);
-          pt_positions.row(iP) = bc_to_position(f, pb, VO, FO);
-      }
-      auto psOrigPoints = polyscope::registerPointCloud("original points", pt_positions);
-
-      int v = insert_ear_vertex(fs, t, F, G, l, A, v2fs, BC, F2V);
-      flip_to_delaunay(F, G, l, A, v2fs, BC, F2V);
-
-      Eigen::MatrixXd V = VO;
-      V.conservativeResize(V.rows()+1, 3);
-      V.row(v) = x;
-
-      auto psSubdivided = polyscope::registerSurfaceMesh("subdivided mesh", V, F);
-      Eigen::MatrixXd subdivided_pt_positions(nPts, 3);
-      for (int f = 0; f < F.rows(); f++) {
-          for (int iP : F2V[f]) {
-            subdivided_pt_positions.row(iP) = bc_to_position(f, BC.row(iP), V, F);
-          }
-      }
-      auto psSubddividedPoints = polyscope::registerPointCloud("subdivided points", subdivided_pt_positions);
-
-      polyscope::show();
-    }
-
-    // test delaunay refinement
-    if (true) {
-        polyscope::init();
-        auto psMesh  = polyscope::registerSurfaceMesh("input mesh", VO, FO);
-
-        MatrixXd BC;
-        vector<vector<int>> F2V;
-
-        int nV = v2fs.rows();
-        int nF = F.rows();
-        BC.resize(nV + tex_size, 3);
-        BC.setConstant(0.0);
-        F2V.resize(nF);
-
-        for (int i = 0; i < tex_size; i++) {
-            int idx = i + nV;
-            if (hit_mask(i)) {
-                BC.row(i + nV) = bary_coords.row(i);
-                F2V[bary_faces(i)].push_back(idx);
-            }
-        }
-
-        auto snapshot = [&](std::string name) -> void {
-            if (!using_texture) return;
-            std::vector<unsigned char> texture;
-            if (tex_width > 0) bake_texture(texture, F, F2V, hit_mask, nV);
-
-            if (tex_width > 0 && texture_path_arg) {
-              std::string texture_path = args::get(texture_path_arg);
-              bake_texture(texture_path, texture);
-            }
-
-            // convert parameterization to polyscope's desired input format
-            Eigen::Matrix<glm::vec2, Dynamic, 1> parameterization(3 * UF.rows());
-            for (int iF = 0; iF < UF.rows(); iF++) {
-              for (int iC = 0; iC < 3; iC++) {
-                parameterization(3 * iF + iC) = glm::vec2{UV(UF(iF, iC), 0), UV(UF(iF, iC), 1)};
-              }
-            }
-            auto q = psMesh->addParameterizationQuantity(name, parameterization)
-              ->setTexture(tex_width, tex_width, texture, polyscope::TextureFormat::RGBA8);
-            q->setEnabled(true);
-            q->setStyle(polyscope::ParamVizStyle::TEXTURE);
-            q->setCheckerSize(1);
+        auto bc_to_position = [](int f,
+                                 const Eigen::Vector3d & bc,
+                                 const Eigen::MatrixXd & V,
+                                 const Eigen::MatrixXi & F) -> Eigen::Vector3d {
+            return bc(0) * V.row(F(f, 0)) + bc(1) * V.row(F(f, 1)) + bc(2) * V.row(F(f, 2));
         };
 
-        delaunay_refine(F, G, l, A, v2fs, BC, F2V);
-        snapshot("refined");
-        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), 100);
-        // snapshot("r100");
-        // int step = 5;
-        // int start = 10;
-        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), start);
-        // snapshot("r" + std::to_string(start));
-        // for (int ii = start; ii < 26; ii += step) {
-        //     delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), step);
-        //     // snapshot("r" + std::to_string(ii + step));
-        // }
-        // snapshot("final result");
-        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), 1);
-        // snapshot("r1");
-        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), 1);
-        // snapshot("r2");
-        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), 1);
-        // snapshot("r3");
-        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), 1);
-        // snapshot("r4");
-        // delaunay_refine(F, G, l, A, v2fs, BC, F2V, 25, std::numeric_limits<double>::infinity(), 1);
-        // snapshot("r6");
+        auto inside_triangle = [](const Vector3d& v) -> bool {
+          return v(0) >= 0 && v(1) >= 0 && v(2) >= 0;
+        };
 
-        // insert_degree_three_vertex(454, {0.476828,0.221668,0.301503}, F, G, l, A, v2fs, BC, F2V);
-        // flip_to_delaunay(F, G, l, A, v2fs, BC, F2V);
-        // snapshot("insert");
+        polyscope::init();
+        auto psInput = polyscope::registerSurfaceMesh("input mesh", VO, FO);
+        int f = 3609; // spot.obj
+        std::cout << "Face vertices: " << F.row(f) << std::endl;
+        Eigen::Vector3d b{0.1, 0.3, 0.6};
+        Eigen::Vector3d x = bc_to_position(f, b, VO, FO);
+        auto psNewPoint = polyscope::registerPointCloud("inserted point", x.transpose());
 
-        // Eigen::Vector3d x = VO.row(FO(1186, 0));
-        // polyscope::registerPointCloud("x point", x.transpose());
+        int nPts = 25;
+        Eigen::MatrixXd BC(nPts, 3), pt_positions(nPts, 3);
+        std::vector<std::vector<int>> F2V(F.rows(), std::vector<int>{});
+        for (int iP = 0; iP < nPts; iP++) {
+            Eigen::Vector3d pb = Eigen::Vector3d::Random().cwiseAbs();
+            pb /= pb.sum();
+            BC.row(iP) = pb;
+            F2V[f].push_back(iP);
+            pt_positions.row(iP) = bc_to_position(f, pb, VO, FO);
+        }
+        double r = 0.001;
+        polyscope::registerPointCloud("original points", pt_positions)->setPointRadius(r);
+
+        int v = insert_degree_three_vertex(f, b, F, G, l, A, v2fs, BC, F2V);
+        Eigen::MatrixXd V = VO;
+        V.conservativeResize(V.rows()+1, 3);
+        V.row(v) = x;
+
+        auto psSubdivided = polyscope::registerSurfaceMesh("subdivided mesh", V, F);
+        Eigen::MatrixXd aa(F2V[f].size(), 3), bb(F2V[F.rows()-2].size(), 3),
+                        cc(F2V[F.rows()-1].size(), 3);
+        int ii = 0;
+        for (int iP : F2V[f]) {
+          aa.row(ii++) = bc_to_position(f, BC.row(iP), V, F);
+        }
+        ii = 0;
+        for (int iP : F2V[F.rows()-2]) {
+          bb.row(ii++) = bc_to_position(F.rows()-2, BC.row(iP), V, F);
+        }
+        ii = 0;
+        for (int iP : F2V[F.rows()-1]) {
+          cc.row(ii++) = bc_to_position(F.rows()-1, BC.row(iP), V, F);
+        }
+        polyscope::registerPointCloud("subdivided points a", aa)->setPointRadius(r);
+        polyscope::registerPointCloud("subdivided points b", bb)->setPointRadius(r);
+        polyscope::registerPointCloud("subdivided points c", cc)->setPointRadius(r);
 
         polyscope::show();
     }
 
-    /*
-    int total_removal = VO.rows() - n_coarse_vertices;
+
     MatrixXd BC;
     vector<vector<int>> F2V;
-    coarsen_mesh(total_removal, weight, F, G, l, A, v2fs, BC, F2V);
 
-    cout << "removed " << total_removal << " vertices" << endl;
+    int nVO = v2fs.rows();
+    int nV = nVO;
+    int nF = F.rows();
+    BC.resize(nVO + tex_size, 3);
+    BC.setConstant(DOUBLE_INF);
+    F2V.resize(nF);
+
+    size_t iP = 0;
+    for (int i = 0; i < tex_size; i++) {
+        if (hit_mask(i)) {
+            BC.row(nVO + iP) = bary_coords.row(i);
+            F2V[bary_faces(i)].push_back(nVO + iP);
+            iP++;
+        }
+    }
+    BC.conservativeResize(nVO + iP, 3); // only keep active pixels
+    int nPix = BC.rows();
+
+    // pre-refinement
+    if (refinement_time == RefinementTime::Before
+        || refinement_time == RefinementTime::Both) {
+        delaunay_refine(F, G, l, A, v2fs, BC, F2V);
+
+        nV = 0; // recount number of vertices after refinement
+        for (int iV = 0; iV < v2fs.rows(); iV++) {
+            // filter out deleted vertices
+            if (v2fs(iV, 0) != GHOST_INDEX) nV++;
+        }
+
+
+        for (int f = 0; f < F.rows(); f++) {
+            if (is_dead_face(f) && !F2V[f].empty())
+              throw std::runtime_error("dead face contains pts");
+        }
+
+        // rebuild BC array to make space for new vertices
+        MatrixXd new_BC;
+        int index_shift = v2fs.rows() - nVO;
+        new_BC.resize(v2fs.rows() + iP, 3);
+        new_BC.setConstant(DOUBLE_INF);
+
+        for (int iF = 0; iF < F.rows(); iF++) {
+          if (is_dead_face(iF)) continue;
+
+          for (int& iP : F2V[iF]) {
+            new_BC.row(iP + index_shift) = BC.row(iP);
+            iP += index_shift;
+          }
+        }
+
+        BC = new_BC;
+        nVO = v2fs.rows();
+    }
+
+    polyscope::init();
+    auto psMesh  = polyscope::registerSurfaceMesh("input mesh", VO, FO);
+
+    auto snapshot = [&](std::string name, int padded_length = 3) {
+      cout << "baking texture with nVO = " << nVO
+           << ", iP = " << iP
+           << ", F2V.size() = " << F2V.size()
+           << ", texture size = " << hit_mask.size() << endl;
+      std::vector<unsigned char> texture;
+      bake_texture(texture, F, F2V, hit_mask, nVO);
+
+      // convert parameterization to polyscope's desired input format
+      Eigen::Matrix<glm::vec2, Dynamic, 1> parameterization(3 * UF.rows());
+      for (int iF = 0; iF < UF.rows(); iF++) {
+        for (int iC = 0; iC < 3; iC++) {
+          parameterization(3 * iF + iC) = glm::vec2{UV(UF(iF, iC), 0), UV(UF(iF, iC), 1)};
+        }
+      }
+      name.insert(name.begin(), padded_length - name.size(), ' ');
+      auto q = psMesh->addParameterizationQuantity("intrinsic triangulation " + name, parameterization)
+        ->setTexture(tex_width, tex_width, texture, polyscope::TextureFormat::RGBA8);
+      q->setEnabled(true);
+      q->setStyle(polyscope::ParamVizStyle::TEXTURE);
+      q->setCheckerSize(1);
+
+      // polyscope::registerSurfaceMesh2D("UV " + name, UV, UF);
+    };
+
+    if (true) {
+        // int step = 1;
+        // int f_watch = 1371;
+        // for (int i = 0; i < 5; i+=step) {
+        //   if (!is_dead_face(f_watch)){
+        //     cout << "iteration " << i << " | face " << f_watch << " contains points: " << endl;
+        //     if (f_watch >= F2V.size()) {
+        //       std::cout << "f_watch " << f_watch << " >= F2V.size() " << F2V.size() << endl;
+        //     }
+        //     for (int iP : F2V[f_watch]) {
+        //       cout << "  " << iP <<  " (" << (iP - nVO) << ") | " << BC.row(iP) << endl;
+        //     }}
+        //     snapshot(std::to_string(i));
+
+        //     // check that we've kept all points
+        //     int nPts = 0;
+        //     for (int iF = 0; iF < F.rows(); iF++) {
+        //         if (F(iF, 0) < 0) continue;
+        //         for (int idx : F2V[iF]) {
+        //           if (idx >= nVO) {
+        //             nPts++;
+        //           }
+        //         }
+        //     }
+        //     if (nPts + nVO != BC.rows()) {
+        //       std::cout << "Error, found " << nPts << " points, but there should be " << (BC.rows() - nVO) << std::endl;
+        //     }
+        //     cout << "started with " << nPix << " bary coords, and now we have " << BC.rows() << endl;
+        //     cout << "done with info dump" << endl << endl;
+
+        //     coarsen_mesh(step, weight, F, G, l, A, v2fs, BC, F2V);
+        // }
+        // coarsening
+        int total_removal = nV - n_coarse_vertices;
+        coarsen_mesh(total_removal, weight, F, G, l, A, v2fs, BC, F2V);
+
+        // cout << "removed " << total_removal << " vertices" << endl;
+    }
+
+    // post-refinement
+    if (refinement_time == RefinementTime::After
+        || refinement_time == RefinementTime::Both) {
+        delaunay_refine(F, G, l, A, v2fs, BC, F2V);
+    }
 
     // removed unreferenced vertices
-    map<int, int> IMV, IMF;
-    VectorXi vIdx, fIdx;
-    remove_unreferenced_intrinsic(F, G, l, A, v2fs, F2V, IMV, IMF, vIdx, fIdx);
-    MatrixXd V;
-    igl::slice(VO,vIdx,1,V);
+    // map<int, int> IMV, IMF;
+    // VectorXi vIdx, fIdx;
+    // remove_unreferenced_intrinsic(F, G, l, A, v2fs, F2V, IMV, IMF, vIdx, fIdx);
+    // MatrixXd V; // TODO: interpolate vertex positions to inserted vertices
+    // igl::slice(VO,vIdx,1,V);
 
+
+    if (using_texture) {
+        std::vector<unsigned char> texture;
+        bake_texture(texture, F, F2V, hit_mask, nVO);
+
+        if (texture_path_arg) {
+            std::string texture_path = args::get(texture_path_arg);
+            bake_texture(texture_path, texture);
+        }
+
+        // convert parameterization to polyscope's desired input format
+        Eigen::Matrix<glm::vec2, Dynamic, 1> parameterization(3 * UF.rows());
+        for (int iF = 0; iF < UF.rows(); iF++) {
+            for (int iC = 0; iC < 3; iC++) {
+                parameterization(3 * iF + iC) = glm::vec2{UV(UF(iF, iC), 0), UV(UF(iF, iC), 1)};
+            }
+        }
+        auto q = psMesh->addParameterizationQuantity("intrinsic triangulation", parameterization)
+                  ->setTexture(tex_width, tex_width, texture, polyscope::TextureFormat::RGBA8);
+        q->setEnabled(true);
+        q->setStyle(polyscope::ParamVizStyle::TEXTURE);
+        q->setCheckerSize(1);
+
+        // polyscope::registerSurfaceMesh2D("uv", UV, UF);
+    }
+
+    polyscope::show();
+
+    /*
     // get vector prolongation matrix
     SparseMatrix<std::complex<double>> P;
     get_vertex_vector_prolongation(FO, GO, lO, AO, vO2fsO,

@@ -337,7 +337,7 @@ void delaunay_refine(
             int iV = p.first;
             if (is_inserted_vertex(iV) && !is_boundary_vertex(G, v2fs, iV)) {
                 always_flip_to_degree_three(iV,F,G,l,A,v2fs,BC,F2V);
-                remove_degree_three_vertex(iV,F,G,l,A,v2fs,BC,F2V,T);
+                remove_degree_three_vertex(iV,F,G,l,A,v2fs,BC,F2V,T,false);
             }
         }
 
@@ -387,7 +387,7 @@ void delaunay_refine(
 
         // face and barycentric coordinates for circumcenter
         int f_c; Vector3d b_c;
-        bool end_in_face = trace_geodesic(iF, barycenter, vec_to_circumcenter, F, G,
+        bool end_in_face = trace_geodesic(iF, barycenter, vec_to_circumcenter, G,
                                           l, f_c, b_c);
 
         // ===  Add the new vertex
@@ -425,8 +425,9 @@ void delaunay_refine(
         //      << endl;
 
         // check Delaunay condition
-        if (false) {
+        if (true) { // TODO: remove check
             for (int iF = 0; iF < F.rows(); iF++) {
+              if (is_dead_face(iF)) continue;
                 for (int iS = 0; iS < 3; iS++) {
                     if (fs_in_delaunay_queue({iF, iS})) {
                       Vector2i fs{iF, iS};
@@ -434,6 +435,7 @@ void delaunay_refine(
                       cout << "fs: "<< fs.transpose() << " | twin: " << fsT.transpose() << endl;
                       cout << boolalpha << "fs in queue: " << in_delaunay_queue(iF, iS)
                           << " | twin in queue: " << (fsT != GHOST_FACE_SIDE && in_delaunay_queue(fsT(0), fsT(1))) << endl;
+                      cout << "isdead " << is_dead_face(iF) << endl;
                       throw runtime_error("face side left in queue");
                     }
                     if (!is_delaunay(G, l, {iF, iS})) {
@@ -480,6 +482,8 @@ void delaunay_refine(
                 in_delaunay_queue(F.rows()-1, 1) = false;
                 in_delaunay_queue(F.rows()-1, 2) = false;
                 n_insertions++;
+
+                // Add barycentric coordinates for new vertex
 
                 // Mark everything in the 1-ring as possibly non-Delaunay and
                 // possibly violating the circumradius constraint

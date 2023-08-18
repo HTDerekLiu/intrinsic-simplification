@@ -35,6 +35,7 @@
     BC: |BC|x3 array of barycentric coordinates
     F2V: |F| length list of lists, where F2V[f] gives you indices in BC.
     T: |V|xch*3 array of tangent vectors
+    set_vertex_bc: whether or not to store v's location in the BC array (default: true)
 
     Outputs
     All the variables are updated in-place
@@ -50,6 +51,7 @@ int remove_degree_three_vertex(
     Eigen::MatrixXi & v2fs,
     Eigen::MatrixXd & BC,
     std::vector<std::vector<int>> & F2V,
-    Eigen::MatrixXd & T);
+    Eigen::MatrixXd & T,
+    bool set_vertex_bc = true);
 
 #endif
