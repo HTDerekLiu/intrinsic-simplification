@@ -29,6 +29,7 @@ main.cpp
 + [`03_visualization/`](03_visualization/): shows how to visualize the intrinsic triangles sitting atop the original fine mesh (Fig. 15)
 + [`04_multigrid/`](04_multigrid/): shows how to use our intrinsic coarsening to construct a Galerkin multigrid solver, following the technique presented in [Surface Multigrid via Intrinsic Prolongation](https://www.dgp.toronto.edu/projects/intrinsic-prolongation/) (SIGGRAGH North America 2021)
 + [`05_prolongation_vector/`](05_prolongation_vector/): constructs a prolongation operator for vector fields (Section 7.3), alongside a connection Laplacian matrix and vector mass matrix on the simplified mesh.
++ [`06_delaunay_refinement/`](06_delaunay_refinement/): shows how our method can be combined with _intrinsic Delaunay refinement_ (Section 6.3), either before or after simplification, to obtain higher quality triangulations.
 
 And they share a common `src` folder for source code and a `meshes` folder for input meshes.
 
