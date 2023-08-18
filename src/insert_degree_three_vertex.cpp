@@ -1,6 +1,5 @@
 #include "insert_degree_three_vertex.h"
 
-#include <vector>
 #include <array>
 
 #include "next.h"
@@ -12,6 +11,7 @@
 #include "opposite_corner_angle.h"
 #include "get_smallest_angular_coordinate.h"
 #include "is_boundary_vertex.h"
+#include "pi.h"
 
 // borrowed from remove_degree_three_vertex.cpp
 static void relabel(

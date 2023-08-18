@@ -3,6 +3,8 @@
 
 #include <Eigen/Core>
 
+#include <vector>
+
 /*
     This function inserts an ear vertex into a boundary face side
 

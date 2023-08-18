@@ -1,6 +1,5 @@
 #include "insert_ear_vertex.h"
 
-#include <vector>
 #include <array>
 
 #include "next.h"

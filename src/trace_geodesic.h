@@ -2,6 +2,7 @@
 #define TRACE_GEODESIC
 
 #include <Eigen/Core>
+#include <vector>
 
 /*
 This function traces a geodesic from a point on a mesh intrinsically.

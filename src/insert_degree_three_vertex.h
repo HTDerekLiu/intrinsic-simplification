@@ -3,6 +3,8 @@
 
 #include <Eigen/Core>
 
+#include <vector>
+
 /*
     This function inserts a degree three vertex into a face
 
