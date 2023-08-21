@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.16)
-# SET(CMAKE_BUILD_TYPE release)
+SET(CMAKE_BUILD_TYPE release)
 project(main)
 
 set(DFETCHCONTENT_SOURCE_DIR_LIBIGL ${CMAKE_CURRENT_SOURCE_DIR}/../externals/libigl)

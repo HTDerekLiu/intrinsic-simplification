@@ -1,7 +1,7 @@
 # Intrinsic simplification & intrinsic Delaunay refinement
 This is an example to show how to combine our intrinsic simplification with [intrinsic Delaunay refinement](https://markjgillespie.com/Research/integer-coordinates/index.html) to produce guaranteed quality intrinsic triangulations. This example can be compiled using the common cmake/make routine:
 ``` bash
-cd 06_prolongation_scalar/
+cd 06_delaunay_refinement/
 mkdir build
 cd build
 cmake ..
@@ -14,6 +14,20 @@ Once compiled, one can run the example by typing
 and you will see the following example:
 
 <p align="center"><img src="../assets/06.jpg" height="400pt;"></p>
+
+
+## Simple Remeshing by Refinement & Simplification
+In Section 6.3 of the paper, we show that by doing intrinsic refinement followed by simplification, we can perform preliminary intrinsic remeshing. This can be achieved by adding a few arguments:
+1. switching the option to `--refinement_time=BEFORE` to perform refinement _before_ simplification.
+2. adding non-zero area weight in the simplification `--area_weight=0.1` so that the newly added vertices from the refinement will not be removed immediately (because they have zero Gaussian curvature).
+
+For instance, one can run
+``` bash
+/main ../../meshes/boxpart.obj 200 --area_weight=0.1 --refinement_time=BEFORE
+```
+to intrinsically remesh the `boxpart` model to 200 vertices
+
+<p align="center"><img src="../assets/06_2.jpg" height="400pt;"></p>
 
 ## Usage
 
